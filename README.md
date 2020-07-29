@@ -11,3 +11,12 @@ suitable for inclusion in the user's mode-line, for example like this:
                                         dnel-notifications))))
     (add-hook 'dnel-notifications-changed-hook
               (lambda () (force-mode-line-update t)))
+
+# Getting Started
+
+For now, simply execute the `package-install-file` command and point it to a
+local copy of this repository.
+The package will hopefully end up on [MELPA](https://melpa.org) in due time.
+After installation, ensure that no other notification daemon is active, execute
+`dnel-mode`, and monitor the `dnel-notifications` variable as you see fit.
+Enjoy!
