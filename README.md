@@ -7,10 +7,12 @@ the global minor mode `dnel-mode` is active.
 A convenience function `dnel-get-default-propertized-string` is provided,
 suitable for inclusion in the user's mode-line, for example like this:
 
-    (nconc global-mode-string '((:eval (dnel-get-default-propertized-string
-                                        dnel-notifications))))
-    (add-hook 'dnel-notifications-changed-hook
-              (lambda () (force-mode-line-update t)))
+```elisp
+(nconc global-mode-string '((:eval (dnel-get-default-propertized-string
+                                    dnel-notifications))))
+(add-hook 'dnel-notifications-changed-hook
+          (lambda () (force-mode-line-update t)))
+```
 
 # Getting Started
 
