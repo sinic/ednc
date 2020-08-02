@@ -77,14 +77,14 @@ ACTION defaults to the key \"default\"."
     (dnel--dbus-talk-to (plist-get (cdr notification) 'client)
                         'send-signal 'ActionInvoked id (or action "default"))))
 
-(defun dnel-close-notification (id active &optional reason)
+(defun dnel-close-notification (active id &optional reason)
   "Close the notification identified by ID in ACTIVE for REASON.
 
-REASON defaults to 2 (i.e., dismissed by the user)."
+REASON defaults to 3 (i.e., closed by call to CloseNotification)."
   (let ((notification (dnel--get-notification id active t)))
     (run-hooks 'dnel-notifications-changed-hook)
     (dnel--dbus-talk-to (plist-get (cdr notification) 'client)
-                        'send-signal 'NotificationClosed id (or reason 2))))
+                        'send-signal 'NotificationClosed id (or reason 3))))
 
 (defun dnel--format-notification (notification active)
   "Propertize notification NOTIFICATION in ACTIVE."
@@ -101,7 +101,7 @@ The optional BODY is shown as a tooltip, ACTIONS can be selected from a menu."
                                   (dnel-invoke-action id active)))
                     (down-mouse-2 . ,(dnel--format-actions actions id active))
                     (mouse-3 . ,(lambda () (interactive)
-                                  (dnel-close-notification id active))))))
+                                  (dnel-close-notification active id 2))))))
     (apply #'propertize summary 'mouse-face 'mode-line-highlight
            'local-map `(keymap (header-line keymap . ,controls)
                                (mode-line keymap . ,controls))
@@ -120,9 +120,9 @@ The optional BODY is shown as a tooltip, ACTIONS can be selected from a menu."
 
 (defun dnel--start-server (active)
   "Register server for keeping track of notifications in ACTIVE."
-  (dolist (args `((Notify ,(apply-partially #'dnel--handle-Notify active) t)
+  (dolist (args `((Notify ,(apply-partially #'dnel--notify active) t)
                   (CloseNotification
-                   ,(apply-partially #'dnel--handle-CloseNotification active) t)
+                   ,(apply-partially #'dnel-close-notification active) t)
                   (GetServerInformation
                    ,(lambda () (list "Emacs" "GNU" emacs-version "1.2")) t)
                   (GetCapabilities ,(lambda () '(("body" "actions"))) t)))
@@ -132,11 +132,11 @@ The optional BODY is shown as a tooltip, ACTIONS can be selected from a menu."
 (defun dnel--stop-server (active)
   "Close all notifications in ACTIVE, then unregister server."
   (while (cdr active)
-    (dnel-close-notification (caadr active) active))  ; pops (cdr active)
+    (dnel-close-notification active (caadr active) 2))  ; pops (cdr active)
   (dbus-unregister-service :session dnel--service))
 
-(defun dnel--handle-Notify (active app-name replaces-id _app-icon summary
-                                   body actions _hints expire-timeout)
+(defun dnel--notify (active app-name replaces-id _app-icon summary body actions
+                            _hints expire-timeout)
   "Handle call by introducing notification to ACTIVE, return ID.
 
 APP-NAME, REPLACES-ID, _APP-ICON, SUMMARY, BODY, ACTIONS, _HINTS, EXPIRE-TIMEOUT
@@ -148,16 +148,12 @@ _APP-ICON and _HINTS are ignored for now."
          (client (dbus-event-service-name last-input-event))
          (timer (when (> expire-timeout 0)
                   (run-at-time (/ expire-timeout 1000.0) nil
-                               #'dnel-close-notification id active 1))))
+                               #'dnel-close-notification active id 1))))
     (push (list id 'client client 'timer timer 'app-name app-name 'summary
                 summary 'body body 'actions actions)
           (cdr active))
     (run-hooks 'dnel-notifications-changed-hook)
     id))
-
-(defun dnel--handle-CloseNotification (active id)
-  "Handle call by closing notification identified by ID in ACTIVE."
-  (dnel-close-notification id active 3) :ignore)
 
 ;; Timers call this function, so keep an eye on complexity:
 (defun dnel--get-notification (id active &optional remove)
