@@ -69,7 +69,7 @@ The exact format of the returned string is subject to change."
                    (dnel--format-notification notification active))))
              (cdr active) ""))
 
-(defun dnel-invoke-action (id active &optional action)
+(defun dnel-invoke-action (active id &optional action)
   "Invoke ACTION of the notification identified by ID in ACTIVE.
 
 ACTION defaults to the key \"default\"."
@@ -98,7 +98,7 @@ REASON defaults to 3 (i.e., closed by call to CloseNotification)."
 
 The optional BODY is shown as a tooltip, ACTIONS can be selected from a menu."
   (let ((controls `((mouse-1 . ,(lambda () (interactive)
-                                  (dnel-invoke-action id active)))
+                                  (dnel-invoke-action active id)))
                     (down-mouse-2 . ,(dnel--format-actions actions id active))
                     (mouse-3 . ,(lambda () (interactive)
                                   (dnel-close-notification active id 2))))))
@@ -114,7 +114,7 @@ The optional BODY is shown as a tooltip, ACTIONS can be selected from a menu."
       (let ((key (pop actions)))
         (push (list i 'menu-item (pop actions)
                     (lambda () (interactive)
-                      (dnel-invoke-action id active key)))
+                      (dnel-invoke-action active id key)))
               result)))
     (reverse (cons "Actions" result))))
 
