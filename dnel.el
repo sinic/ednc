@@ -106,7 +106,7 @@ The optional BODY is shown as a tooltip, ACTIONS can be selected from a menu."
     (apply #'propertize summary 'mouse-face 'mode-line-highlight
            'local-map `(keymap (header-line keymap . ,controls)
                                (mode-line keymap . ,controls))
-           (when (and body (not (string-empty-p body))) `(help-echo ,body)))))
+           (when (and body (not (string-equal "" body))) `(help-echo ,body)))))
 
 (defun dnel--format-actions (actions id active)
   "Propertize ACTIONS for notification identified by ID in ACTIVE."

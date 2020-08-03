@@ -115,12 +115,12 @@
 ;; Test dnel-get-default-propertized-string:
 (ert-deftest dnel--propertize-string-for-no-notifications-test ()
   (dnel--with-temp-server active
-    (should (string-empty-p (dnel-get-default-propertized-string active)))))
+    (should (string-equal "" (dnel-get-default-propertized-string active)))))
 
 (ert-deftest dnel--propertize-string-for-hidden-notification-test ()
   (dnel--with-temp-server active
     (apply #'dnel--notify active (dnel--get-test-args))
-    (should (string-empty-p
+    (should (string-equal ""
              (dnel-get-default-propertized-string active '("test"))))))
 
 (ert-deftest dnel--propertize-string-for-single-notification-test ()
