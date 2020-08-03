@@ -163,8 +163,8 @@
 (ert-deftest dnel--close-notification-test ()
   (dnel--with-temp-server active
     (let ((id (apply #'dnel--notify active (dnel--get-test-args))))
-      (dnel-close-notification active id 3)
-      (should-error (dnel--get-notification active id)))))
+      (should (eq (dnel-close-notification active id 3) :ignore))
+      (should-error (dnel--get-notification active id)))))  ; gone?
 
 (ert-deftest dnel--close-previously-closed-notification-test ()
   (dnel--with-temp-server active

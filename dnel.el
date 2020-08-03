@@ -84,7 +84,8 @@ REASON defaults to 3 (i.e., closed by call to CloseNotification)."
   (let ((notification (dnel--get-notification id active t)))
     (run-hooks 'dnel-notifications-changed-hook)
     (dnel--dbus-talk-to (plist-get (cdr notification) 'client)
-                        'send-signal 'NotificationClosed id (or reason 3))))
+                        'send-signal 'NotificationClosed id (or reason 3)))
+  :ignore)
 
 (defun dnel--format-notification (notification active)
   "Propertize notification NOTIFICATION in ACTIVE."
