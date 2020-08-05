@@ -98,15 +98,13 @@ REASON defaults to 3 (i.e., closed by call to CloseNotification)."
   "Propertize SUMMARY for notification identified by ID in ACTIVE.
 
 The optional BODY is shown as a tooltip, ACTIONS can be selected from a menu."
-  (let ((controls `((mouse-1 . ,(lambda () (interactive)
-                                  (dnel-invoke-action active id)))
-                    (down-mouse-2 . ,(dnel--format-actions actions id active))
-                    (mouse-3 . ,(lambda () (interactive)
-                                  (dnel-close-notification active id 2))))))
-    (apply #'propertize summary 'mouse-face 'mode-line-highlight
-           'local-map `(keymap (header-line keymap . ,controls)
-                               (mode-line keymap . ,controls))
-           (when (and body (not (string-equal "" body))) `(help-echo ,body)))))
+  (apply #'propertize summary 'mouse-face 'mode-line-highlight 'local-map
+         `(keymap . ((mouse-1 . ,(lambda () (interactive)
+                                   (dnel-invoke-action active id)))
+                     (down-mouse-2 . ,(dnel--format-actions actions id active))
+                     (mouse-3 . ,(lambda () (interactive)
+                                   (dnel-close-notification active id 2)))))
+         (when (and body (not (string-equal "" body))) `(help-echo ,body))))
 
 (defun dnel--format-actions (actions id active)
   "Propertize ACTIONS for notification identified by ID in ACTIVE."
