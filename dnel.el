@@ -136,22 +136,20 @@ The optional BODY is shown as a tooltip, ACTIONS can be selected from a menu."
     (dnel-close-notification active (caadr active) 2))  ; pops (cdr active)
   (dbus-unregister-service :session dnel--service))
 
-(defun dnel--notify (active app-name replaces-id _app-icon summary body actions
-                            _hints expire-timeout)
+(defun dnel--notify (active app-name replaces-id app-icon summary body actions
+                            hints expire-timeout)
   "Handle call by introducing notification to ACTIVE, return ID.
 
-APP-NAME, REPLACES-ID, _APP-ICON, SUMMARY, BODY, ACTIONS, _HINTS, EXPIRE-TIMEOUT
-are the received values as described in the Desktop Notification standard.
-
-_APP-ICON and _HINTS are ignored for now."
+APP-NAME, REPLACES-ID, APP-ICON, SUMMARY, BODY, ACTIONS, HINTS, EXPIRE-TIMEOUT
+are the received values as described in the Desktop Notification standard."
   (let* ((id (if (zerop replaces-id) (setcar active (1+ (car active)))
                (car (dnel--get-notification replaces-id active t))))
          (client (dbus-event-service-name last-input-event))
          (timer (when (> expire-timeout 0)
                   (run-at-time (/ expire-timeout 1000.0) nil
                                #'dnel-close-notification active id 1))))
-    (push (list id 'client client 'timer timer 'app-name app-name 'summary
-                summary 'body body 'actions actions)
+    (push (list id 'app-name app-name 'summary summary 'body body 'client client
+                'timer timer 'actions actions 'app-icon app-icon 'hints hints)
           (cdr active))
     (run-hooks 'dnel-notifications-changed-hook)
     id))
