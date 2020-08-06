@@ -105,7 +105,7 @@ The optional BODY is shown as a tooltip, ACTIONS can be selected from a menu."
                                   (dnel-close-notification active id 2))))))
     (apply #'propertize summary 'mouse-face 'mode-line-highlight
            'local-map `(keymap (header-line keymap . ,controls)
-                               (mode-line keymap . ,controls))
+                               (mode-line keymap . ,controls) . ,controls)
            (when (and body (not (string-equal "" body))) `(help-echo ,body)))))
 
 (defun dnel--format-actions (actions id active)
