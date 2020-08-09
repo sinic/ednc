@@ -73,7 +73,7 @@ The exact format of the returned string is subject to change."
   "Invoke ACTION of the notification identified by ID in ACTIVE.
 
 ACTION defaults to the key \"default\"."
-  (let ((notification (dnel--get-notification id active)))
+  (let ((notification (dnel-get-notification id active)))
     (dnel--dbus-talk-to (plist-get (cdr notification) 'client)
                         'send-signal 'ActionInvoked id (or action "default"))))
 
@@ -81,7 +81,7 @@ ACTION defaults to the key \"default\"."
   "Close the notification identified by ID in ACTIVE for REASON.
 
 REASON defaults to 3 (i.e., closed by call to CloseNotification)."
-  (let ((notification (dnel--get-notification id active t)))
+  (let ((notification (dnel-get-notification id active t)))
     (run-hooks 'dnel-notifications-changed-hook)
     (dnel--dbus-talk-to (plist-get (cdr notification) 'client)
                         'send-signal 'NotificationClosed id (or reason 3)))
@@ -145,7 +145,7 @@ The optional BODY is shown as a tooltip, ACTIONS can be selected from a menu."
 APP-NAME, REPLACES-ID, APP-ICON, SUMMARY, BODY, ACTIONS, HINTS, EXPIRE-TIMEOUT
 are the received values as described in the Desktop Notification standard."
   (let* ((id (if (zerop replaces-id) (setcar active (1+ (car active)))
-               (car (dnel--get-notification replaces-id active t))))
+               (car (dnel-get-notification replaces-id active t))))
          (client (dbus-event-service-name last-input-event))
          (timer (when (> expire-timeout 0)
                   (run-at-time (/ expire-timeout 1000.0) nil
@@ -157,7 +157,7 @@ are the received values as described in the Desktop Notification standard."
     id))
 
 ;; Timers call this function, so keep an eye on complexity:
-(defun dnel--get-notification (id active &optional remove)
+(defun dnel-get-notification (id active &optional remove)
   "Return notification identified by ID in ACTIVE.
 
 The returned notification is deleted from ACTIVE if REMOVE is non-nil."

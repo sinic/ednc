@@ -36,7 +36,7 @@
             (mapcar #'car dnel--default-test-alist))))
 
 (defun dnel--test-args-match (active id args)
-  (let ((notification (dnel--get-notification id active)))
+  (let ((notification (dnel-get-notification id active)))
     (dolist (property (mapcar #'car dnel--default-test-alist))
       (let ((arg (car args))
             (plist (cdr notification)))
@@ -164,7 +164,7 @@
   (dnel--with-temp-server active
     (let ((id (apply #'dnel--notify active (dnel--get-test-args))))
       (should (eq (dnel-close-notification active id 3) :ignore))
-      (should-error (dnel--get-notification active id)))))  ; gone?
+      (should-error (dnel-get-notification active id)))))  ; gone?
 
 (ert-deftest dnel--close-previously-closed-notification-test ()
   (dnel--with-temp-server active
@@ -260,7 +260,7 @@
   (dnel--with-temp-server active
     (let ((id (apply #'dnel--notify active (dnel--get-test-args))))
       (dnel--dbus-talk 'call-method 'CloseNotification id)
-      (should-error (dnel--get-notification id active)))))  ; gone?
+      (should-error (dnel-get-notification id active)))))  ; gone?
 
 (ert-deftest dnel--handle-close-previously-closed-notification-test ()
   (dnel--with-temp-server active
@@ -290,29 +290,29 @@
       (dolist (required '("actions" "body"))  ; and minimal feature set?
         (should (member required capabilities))))))
 
-;; Test dnel--get-notification:
-(ert-deftest dnel--get-notification-test ()
+;; Test dnel-get-notification:
+(ert-deftest dnel-get-notification-test ()
   (dnel--with-temp-server active
     (apply #'dnel--notify active (dnel--get-test-args))
     (let* ((older (apply #'dnel--notify active (dnel--get-test-args)))
            (newest (apply #'dnel--notify active (dnel--get-test-args))))
-      (should (= older (car (dnel--get-notification older active))))
-      (should (= newest (car (dnel--get-notification newest active)))))))
+      (should (= older (car (dnel-get-notification older active))))
+      (should (= newest (car (dnel-get-notification newest active)))))))
 
 (ert-deftest dnel--get-and-remove-notification-test ()
   (dnel--with-temp-server active
     (apply #'dnel--notify active (dnel--get-test-args))
     (let* ((older (apply #'dnel--notify active (dnel--get-test-args)))
            (newest (apply #'dnel--notify active (dnel--get-test-args))))
-      (should (= older (car (dnel--get-notification older active t))))
+      (should (= older (car (dnel-get-notification older active t))))
       (should-error (dnel--get-notification older active))  ; older gone, and
-      (should (= newest (car (dnel--get-notification newest active t))))
-      (should-error (dnel--get-notification newest active)))))  ; newest gone?
+      (should (= newest (car (dnel-get-notification newest active t))))
+      (should-error (dnel-get-notification newest active)))))  ; newest gone?
 
 (ert-deftest dnel--get-or-remove-nonexistent-notification-test ()
   (dnel--with-temp-server active
     (let ((unused (1+ (apply #'dnel--notify active (dnel--get-test-args)))))
-      (should-error (dnel--get-notification unused active t))  ; neither remove,
-      (should-error (dnel--get-notification unused active)))))  ; nor get only?
+      (should-error (dnel-get-notification unused active t))  ; neither remove,
+      (should-error (dnel-get-notification unused active)))))  ; nor get only?
 
 ;;; test.el ends here
