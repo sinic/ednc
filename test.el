@@ -127,21 +127,21 @@
   (dnel--with-temp-server active
     (apply #'dnel--notify active (dnel--get-test-args))
     (should (string-equal (dnel-get-default-propertized-string active)
-                          " [test: foo]"))))
+                          "1 [test: foo]"))))
 
 (ert-deftest dnel--propertize-string-for-heterogeneous-notifications-test ()
   (dnel--with-temp-server active
     (apply #'dnel--notify active (dnel--get-test-args))
     (apply #'dnel--notify active (dnel--get-test-args '(app-name . "tes1")))
     (should (string-equal (dnel-get-default-propertized-string active)
-                          " [tes1: foo] [test: foo]"))))
+                          "2 [tes1: foo]1 [test: foo]"))))
 
 (ert-deftest dnel--propertize-string-for-homogeneous-notifications-test ()
   (dnel--with-temp-server active
     (apply #'dnel--notify active (dnel--get-test-args))
     (apply #'dnel--notify active (dnel--get-test-args '(summary . "bar")))
     (should (string-equal (dnel-get-default-propertized-string active)
-                          " [test: bar]"))))
+                          "2 [test: bar]"))))
 
 ;; Test dnel-invoke-action:
 (ert-deftest dnel--invoke-action-on-nonexistent-notification-test ()
@@ -181,8 +181,8 @@
 (ert-deftest dnel--format-notification-test ()
   (dnel--with-temp-server active
     (apply #'dnel--notify active (dnel--get-test-args))
-    (should (string-equal (dnel--format-notification (cadr active) active)
-                          " [test: foo]"))))
+    (should (string-equal (dnel-format-notification (cadr active) active)
+                          "1 [test: foo]"))))
 
 ;; Test dnel--format-summary:
 (ert-deftest dnel--format-summary-test ()

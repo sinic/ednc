@@ -66,7 +66,7 @@ The exact format of the returned string is subject to change."
                (let ((app-name (plist-get (cdr notification) 'app-name)))
                  (if (member app-name hide) ""
                    (push app-name hide)
-                   (dnel--format-notification notification active))))
+                   (dnel-format-notification notification active))))
              (cdr active) ""))
 
 (defun dnel-invoke-action (active id &optional action)
@@ -87,10 +87,12 @@ REASON defaults to 3 (i.e., closed by call to CloseNotification)."
                         'send-signal 'NotificationClosed id (or reason 3)))
   :ignore)
 
-(defun dnel--format-notification (notification active)
+(defun dnel-format-notification (notification active)
   "Propertize notification NOTIFICATION in ACTIVE."
   (let ((get (apply-partially #'plist-get (cdr notification))))
-    (format " [%s: %s]" (funcall get 'app-name)
+    (format "%s [%s: %s]"
+            (propertize (number-to-string (car notification)) 'invisible t)
+            (funcall get 'app-name)
             (apply #'dnel--format-summary (funcall get 'summary)
                    (car notification) active (mapcar get '(body actions))))))
 
