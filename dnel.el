@@ -131,7 +131,7 @@ The optional BODY is shown as a tooltip, ACTIONS can be selected from a menu."
                   (CloseNotification
                    ,(apply-partially #'dnel-close-notification active) t)
                   (GetServerInformation
-                   ,(lambda () (list "Emacs" "GNU" emacs-version "1.2")) t)
+                   ,(lambda () (list "DNel" "sinic" "0.1" "1.2")) t)
                   (GetCapabilities ,(lambda () '(("body" "actions"))) t)))
     (apply #'dnel--dbus-talk 'register-method args))
   (dbus-register-service :session dnel--service))
