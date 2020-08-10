@@ -21,16 +21,13 @@
 ;; along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 ;;; Commentary:
-;; This package implements a Desktop Notifications server in Emacs Lisp,
-;; aiming to be a drop-in replacement for standalone daemons like Dunst.
-;; Active notifications are tracked in the variable `dnel-notifications'
-;; whenever the global minor mode `dnel-mode' is active.  A convenience
-;; function `dnel-get-default-propertized-string' is provided, suitable
-;; for inclusion in the user's mode-line, for example like this:
-;;    (nconc global-mode-string '((:eval (dnel-get-default-propertized-string
-;;                                        dnel-notifications))))
-;;    (add-hook 'dnel-notifications-changed-hook
-;;              (lambda () (force-mode-line-update t)))
+;; DNel is an Emacs package that implements a Desktop Notifications
+;; server in pure Lisp, aspiring to be a small, but flexible drop-in
+;; replacement for standalone daemons like Dunst. Active notifications
+;; are tracked in the global variable `dnel-notifications' whenever the
+;; global minor mode `dnel-mode' is active. Users are free to monitor
+;; the contents of that variable as they see fit, though DNel does
+;; provide some additional convenience functions.
 
 ;;; Code:
 (require 'dbus)
