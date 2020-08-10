@@ -74,17 +74,21 @@ The exact format of the returned string is subject to change."
 
 ACTION defaults to the key \"default\"."
   (let ((notification (dnel-get-notification id active)))
-    (dnel--dbus-talk-to (plist-get (cdr notification) 'client)
-                        'send-signal 'ActionInvoked id (or action "default"))))
+    (when notification
+      (dnel--dbus-talk-to (plist-get (cdr notification) 'client)
+                          'send-signal 'ActionInvoked id
+                          (or action "default")))))
 
 (defun dnel-close-notification (active id &optional reason)
   "Close the notification identified by ID in ACTIVE for REASON.
 
 REASON defaults to 3 (i.e., closed by call to CloseNotification)."
-  (let ((notification (dnel-get-notification id active t)))
-    (run-hooks 'dnel-notifications-changed-hook)
-    (dnel--dbus-talk-to (plist-get (cdr notification) 'client)
-                        'send-signal 'NotificationClosed id (or reason 3)))
+  (let* ((notification (dnel-get-notification id active t))
+         (reason (or reason 3)))
+    (if (not notification) (when (= reason 3) (signal 'dbus-error ()))
+      (run-hooks 'dnel-notifications-changed-hook)
+      (dnel--dbus-talk-to (plist-get (cdr notification) 'client)
+                          'send-signal 'NotificationClosed id reason)))
   :ignore)
 
 (defun dnel-format-notification (notification active)
@@ -144,8 +148,9 @@ The optional BODY is shown as a tooltip, ACTIONS can be selected from a menu."
 
 APP-NAME, REPLACES-ID, APP-ICON, SUMMARY, BODY, ACTIONS, HINTS, EXPIRE-TIMEOUT
 are the received values as described in the Desktop Notification standard."
-  (let* ((id (if (zerop replaces-id) (setcar active (1+ (car active)))
-               (car (dnel-get-notification replaces-id active t))))
+  (let* ((id (or (unless (zerop replaces-id)
+                   (car (dnel-get-notification replaces-id active t)))
+                 (setcar active (1+ (car active)))))
          (client (dbus-event-service-name last-input-event))
          (timer (when (> expire-timeout 0)
                   (run-at-time (/ expire-timeout 1000.0) nil
@@ -163,11 +168,10 @@ are the received values as described in the Desktop Notification standard."
 The returned notification is deleted from ACTIVE if REMOVE is non-nil."
   (while (and (cdr active) (/= id (caadr active)))
     (setq active (cdr active)))
-  (if (not (cdr active)) (signal 'dbus-error ())  ; not found
-    (if (not remove) (cadr active)
-      (let ((timer (plist-get (cdadr active) 'timer)))
-        (when timer (cancel-timer timer)))
-      (pop (cdr active)))))
+  (if (not remove) (cadr active)
+    (let ((timer (plist-get (cdadr active) 'timer)))
+      (when timer (cancel-timer timer)))
+    (pop (cdr active))))
 
 (defun dnel--dbus-talk-to (service suffix symbol &rest rest)
   "Help with most actions involving D-Bus service SERVICE.
