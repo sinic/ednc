@@ -164,7 +164,7 @@
   (dnel--with-temp-server active
     (let ((id (apply #'dnel--notify active (dnel--get-test-args))))
       (should (eq (dnel-close-notification active id 3) :ignore))
-      (should-error (dnel-get-notification active id)))))  ; gone?
+      (should-error (dnel-get-notification id active)))))  ; gone?
 
 (ert-deftest dnel--close-previously-closed-notification-test ()
   (dnel--with-temp-server active
@@ -305,7 +305,7 @@
     (let* ((older (apply #'dnel--notify active (dnel--get-test-args)))
            (newest (apply #'dnel--notify active (dnel--get-test-args))))
       (should (= older (car (dnel-get-notification older active t))))
-      (should-error (dnel--get-notification older active))  ; older gone, and
+      (should-error (dnel-get-notification older active))  ; older gone, and
       (should (= newest (car (dnel-get-notification newest active t))))
       (should-error (dnel-get-notification newest active)))))  ; newest gone?
 
