@@ -15,6 +15,15 @@
 ;; along with this program.  If not, see <https://www.gnu.org/licenses/>.
 (require 'dnel)
 
+;; Use cases from README:
+(defun dnel--format-notifications-2 (notifications &optional hide)
+  (mapconcat (lambda (notification)
+               (let ((app-name (plist-get (cdr notification) 'app-name)))
+                 (if (member app-name hide) ""
+                   (push app-name hide)
+                   (dnel-format-notification notification notifications))))
+             (cdr notifications) ""))
+
 ;; Helpers for testing:
 (defmacro dnel--with-temp-server (notifications &rest body)
   (declare (indent 1))
@@ -112,35 +121,35 @@
                  :body (lambda () (dnel--test-notifications-consistency arg)))))
       (should (ert-test-failed-p (ert-run-test test))))))
 
-;; Test dnel-get-default-propertized-string:
+;; Test use case 2:
 (ert-deftest dnel--propertize-string-for-no-notifications-test ()
   (dnel--with-temp-server active
-    (should (string-equal "" (dnel-get-default-propertized-string active)))))
+    (should (string-equal "" (dnel--format-notifications-2 active)))))
 
 (ert-deftest dnel--propertize-string-for-hidden-notification-test ()
   (dnel--with-temp-server active
     (apply #'dnel--notify active (dnel--get-test-args))
     (should (string-equal ""
-             (dnel-get-default-propertized-string active '("test"))))))
+             (dnel--format-notifications-2 active '("test"))))))
 
 (ert-deftest dnel--propertize-string-for-single-notification-test ()
   (dnel--with-temp-server active
     (apply #'dnel--notify active (dnel--get-test-args))
-    (should (string-equal (dnel-get-default-propertized-string active)
+    (should (string-equal (dnel--format-notifications-2 active)
                           "1 [test: foo]"))))
 
 (ert-deftest dnel--propertize-string-for-heterogeneous-notifications-test ()
   (dnel--with-temp-server active
     (apply #'dnel--notify active (dnel--get-test-args))
     (apply #'dnel--notify active (dnel--get-test-args '(app-name . "tes1")))
-    (should (string-equal (dnel-get-default-propertized-string active)
+    (should (string-equal (dnel--format-notifications-2 active)
                           "2 [tes1: foo]1 [test: foo]"))))
 
 (ert-deftest dnel--propertize-string-for-homogeneous-notifications-test ()
   (dnel--with-temp-server active
     (apply #'dnel--notify active (dnel--get-test-args))
     (apply #'dnel--notify active (dnel--get-test-args '(summary . "bar")))
-    (should (string-equal (dnel-get-default-propertized-string active)
+    (should (string-equal (dnel--format-notifications-2 active)
                           "2 [test: bar]"))))
 
 ;; Test dnel-invoke-action:

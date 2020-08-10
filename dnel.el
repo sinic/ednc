@@ -52,20 +52,6 @@ its cdr is a list of currently active notifications, newest first.
 Each notification, in turn, is a cons cell: its car is the ID,
 its cdr is a property list of the notification's attributes.")
 
-;; Not called anywhere, but suggested for the user's mode-line:
-(defun dnel-get-default-propertized-string (active &optional hide)
-  "Return a propertized string describing notifications in ACTIVE.
-
-Only notifications from applications not listed in HIDE are considered.
-
-The exact format of the returned string is subject to change."
-  (mapconcat (lambda (notification)
-               (let ((app-name (plist-get (cdr notification) 'app-name)))
-                 (if (member app-name hide) ""
-                   (push app-name hide)
-                   (dnel-format-notification notification active))))
-             (cdr active) ""))
-
 (defun dnel-invoke-action (active id &optional action)
   "Invoke ACTION of the notification identified by ID in ACTIVE.
 
