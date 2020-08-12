@@ -16,6 +16,11 @@
 (require 'dnel)
 
 ;; Use cases from README:
+(defun dnel--format-notifications-1 (notifications)
+  (mapconcat (lambda (notification)
+               (dnel-format-notification notification notifications))
+             (cdr notifications) ""))
+
 (defun dnel--format-notifications-2 (notifications &optional hide)
   (mapconcat (lambda (notification)
                (let ((app-name (plist-get (cdr notification) 'app-name)))
@@ -121,31 +126,49 @@
                  :body (lambda () (dnel--test-notifications-consistency arg)))))
       (should (ert-test-failed-p (ert-run-test test))))))
 
+;; Test use case 1:
+(ert-deftest dnel--format-1-string-for-no-notifications-test ()
+  (dnel--with-temp-server active
+    (should (string-equal "" (dnel--format-notifications-1 active)))))
+
+(ert-deftest dnel--format-1-string-for-single-notification-test ()
+  (dnel--with-temp-server active
+    (apply #'dnel--notify active (dnel--get-test-args))
+    (should (string-equal (dnel--format-notifications-1 active)
+                          "1 [test: foo]"))))
+
+(ert-deftest dnel--format-1-string-for-multiple-notifications-test ()
+  (dnel--with-temp-server active
+    (apply #'dnel--notify active (dnel--get-test-args))
+    (apply #'dnel--notify active (dnel--get-test-args '(app-name . "tes1")))
+    (should (string-equal (dnel--format-notifications-1 active)
+                          "2 [tes1: foo]1 [test: foo]"))))
+
 ;; Test use case 2:
-(ert-deftest dnel--propertize-string-for-no-notifications-test ()
+(ert-deftest dnel--format-2-string-for-no-notifications-test ()
   (dnel--with-temp-server active
     (should (string-equal "" (dnel--format-notifications-2 active)))))
 
-(ert-deftest dnel--propertize-string-for-hidden-notification-test ()
+(ert-deftest dnel--format-2-string-for-hidden-notification-test ()
   (dnel--with-temp-server active
     (apply #'dnel--notify active (dnel--get-test-args))
     (should (string-equal ""
              (dnel--format-notifications-2 active '("test"))))))
 
-(ert-deftest dnel--propertize-string-for-single-notification-test ()
+(ert-deftest dnel--format-2-string-for-single-notification-test ()
   (dnel--with-temp-server active
     (apply #'dnel--notify active (dnel--get-test-args))
     (should (string-equal (dnel--format-notifications-2 active)
                           "1 [test: foo]"))))
 
-(ert-deftest dnel--propertize-string-for-heterogeneous-notifications-test ()
+(ert-deftest dnel--format-2-string-for-non-stacking-notifications-test ()
   (dnel--with-temp-server active
     (apply #'dnel--notify active (dnel--get-test-args))
     (apply #'dnel--notify active (dnel--get-test-args '(app-name . "tes1")))
     (should (string-equal (dnel--format-notifications-2 active)
                           "2 [tes1: foo]1 [test: foo]"))))
 
-(ert-deftest dnel--propertize-string-for-homogeneous-notifications-test ()
+(ert-deftest dnel--propertize-string-for-stacking-notifications-test ()
   (dnel--with-temp-server active
     (apply #'dnel--notify active (dnel--get-test-args))
     (apply #'dnel--notify active (dnel--get-test-args '(summary . "bar")))
