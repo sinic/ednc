@@ -29,6 +29,19 @@
                    (dnel-format-notification notification notifications))))
              (cdr notifications) ""))
 
+(defun dnel--format-notifications-3 (notifications)
+  (goto-char (point-min))
+  (let ((copy (copy-sequence notifications)))
+    (while (not (eobp))
+      (unless (equal (get-text-property (point) 'face) '(:inherit shadow))
+        (let* ((line (delete-and-extract-region (point) (line-end-position)))
+               (found (dnel-get-notification (string-to-number line) copy t)))
+          (insert (if found (dnel-format-notification found notifications)
+                    (propertize line 'face '(:inherit shadow) 'local-map ())))))
+      (forward-line))
+    (dolist (new (cdr copy))
+      (insert (dnel-format-notification new notifications) ?\n))))
+
 ;; Helpers for testing:
 (defmacro dnel--with-temp-server (notifications &rest body)
   (declare (indent 1))
@@ -174,6 +187,45 @@
     (apply #'dnel--notify active (dnel--get-test-args '(summary . "bar")))
     (should (string-equal (dnel--format-notifications-2 active)
                           "2 [test: bar]"))))
+
+;; Test use case 3:
+(ert-deftest dnel--format-3-string-for-no-notifications-test ()
+  (dnel--with-temp-server active
+    (with-temp-buffer
+      (dnel--format-notifications-3 active)
+      (should (string-equal (buffer-string) "")))))
+
+(ert-deftest dnel--format-3-string-for-single-notification-test ()
+  (dnel--with-temp-server active
+    (apply #'dnel--notify active (dnel--get-test-args))
+    (with-temp-buffer
+      (dnel--format-notifications-3 active)
+      (should (string-equal (buffer-string) "1 [test: foo]
+")))))
+
+(ert-deftest dnel--format-3-string-for-multiple-notifications-test ()
+    (dnel--with-temp-server active
+      (apply #'dnel--notify active (dnel--get-test-args))
+      (with-temp-buffer
+        (dnel--format-notifications-3 active)
+        (apply #'dnel--notify active (dnel--get-test-args '(app-name . "tes1")))
+        (dnel--format-notifications-3 active)
+        (should (string-equal (buffer-string) "1 [test: foo]
+2 [tes1: foo]
+")))))
+
+(ert-deftest dnel--format-3-string-for-shadowed-notifications-test ()
+  (dnel--with-temp-server active
+    (let ((id (apply #'dnel--notify active (dnel--get-test-args))))
+      (with-temp-buffer
+        (dnel--format-notifications-3 active)
+        (apply #'dnel--notify active (dnel--get-test-args '(app-name . "tes1")))
+        (dnel--format-notifications-3 active)
+        (dnel-close-notification active id 3)
+        (dnel--format-notifications-3 active)
+        (should (string-equal (buffer-string) "1 [test: foo]
+2 [tes1: foo]
+"))))))
 
 ;; Test dnel-invoke-action:
 (ert-deftest dnel--invoke-action-on-nonexistent-notification-test ()
