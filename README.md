@@ -63,21 +63,22 @@ Instead of or in addition to one of the previous use cases, a log of past
 and present notifications can be kept in the following way:
 ```elisp
 (defun update-notification-log (notifications)
-  (with-current-buffer (get-buffer-create "*Notifications*")
-    (save-excursion
-      (goto-char (point-min))
-      (let ((copy (copy-sequence notifications)))
-        (while (not (eobp))
-          (let* ((line (delete-and-extract-region (point) (line-end-position)))
-                 (found (dnel-get-notification (string-to-number line) copy t)))
-            (insert (if found (dnel-format-notification found notifications)
-                      (propertize line 'face '(:inherit shadow) 'local-map ())))
-            (forward-line)))
-        (dolist (new (cdr copy))
-          (insert (dnel-format-notification new notifications) ?\n))))))
+  (goto-char (point-min))
+  (let ((copy (copy-sequence notifications)))
+    (while (not (eobp))
+      (unless (equal (get-text-property (point) 'face) '(:inherit shadow))
+        (let* ((line (delete-and-extract-region (point) (line-end-position)))
+               (found (dnel-get-notification (string-to-number line) copy t)))
+          (insert (if found (dnel-format-notification found notifications)
+                    (propertize line 'face '(:inherit shadow) 'local-map ())))))
+      (forward-line))
+    (dolist (new (cdr copy))
+      (insert (dnel-format-notification new notifications) ?\n))))
 
 (add-hook 'dnel-notifications-changed-hook
-          (lambda () (update-notification-log dnel-notifications)))
+          (lambda () (with-current-buffer (get-buffer-create "*Notifications*")
+                       (save-excursion
+                         (update-notification-log dnel-notifications)))))
 ```
 
 Active notifications have text properties as described above; closed or expired
