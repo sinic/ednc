@@ -2,7 +2,7 @@ DNel is an Emacs package that implements a
 [Desktop Notifications server](https://people.gnome.org/~mccann/docs/notification-spec/notification-spec-latest.html)
 in pure Lisp, aspiring to be a small, but flexible drop-in replacement for
 standalone daemons like [Dunst](https://dunst-project.org/).
-Active notifications are tracked in the global variable `dnel-notifications`
+Active notifications are tracked in the global variable `dnel-state`
 whenever the global minor mode `dnel-mode` is active.
 Users are free to monitor the contents of that variable as they see fit, though
 DNel does provide some additional convenience functions.
@@ -14,8 +14,8 @@ local copy of this repository.
 The package will hopefully end up on [MELPA](https://melpa.org) in due time.
 After installation, ensure that no other notification daemon is active, execute
 `dnel-mode`, and make use of your session's currently active notifications in
-`dnel-notifications` whenever the hook `dnel-notifications-changed-hook` runs
-(read on for some suggestions).
+`dnel-state` whenever the hook `dnel-state-changed-hook` runs (read on for some
+suggestions).
 Enjoy!
 
 ## Use Case 1: Show Active Notifications
@@ -28,8 +28,8 @@ in the following way:
                (dnel-format-notification notification notifications))
              (cdr notifications) ""))
 
-(nconc global-mode-string '((:eval (format-notifications dnel-notifications))))
-(add-hook 'dnel-notifications-changed-hook
+(nconc global-mode-string '((:eval (format-notifications dnel-state))))
+(add-hook 'dnel-state-changed-hook
           (lambda () (force-mode-line-update t)))
 ```
 
@@ -52,8 +52,8 @@ notification per application in the following way:
                    (dnel-format-notification notification notifications))))
              (cdr notifications) ""))
 
-(nconc global-mode-string '((:eval (format-notifications dnel-notifications))))
-(add-hook 'dnel-notifications-changed-hook
+(nconc global-mode-string '((:eval (format-notifications dnel-state))))
+(add-hook 'dnel-state-changed-hook
           (lambda () (force-mode-line-update t)))
 ```
 
@@ -75,10 +75,10 @@ and present notifications can be kept in the following way:
     (dolist (new (cdr copy))
       (insert (dnel-format-notification new notifications) ?\n))))
 
-(add-hook 'dnel-notifications-changed-hook
+(add-hook 'dnel-state-changed-hook
           (lambda () (with-current-buffer (get-buffer-create "*Notifications*")
                        (save-excursion
-                         (update-notification-log dnel-notifications)))))
+                         (update-notification-log dnel-state)))))
 ```
 
 Active notifications have text properties as described above; closed or expired
