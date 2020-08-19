@@ -63,14 +63,14 @@ Instead of or in addition to one of the previous use cases, a log of past
 and present notifications can be kept in the following way:
 ```elisp
 (defun update-notification-log (notifications)
-  (goto-char (point-min))
-  (let ((copy (copy-sequence notifications)))
+  (let ((copy (copy-sequence notifications))
+        (closed '(:strike-through t)))
     (while (not (eobp))
-      (unless (equal (get-text-property (point) 'face) '(:inherit shadow))
+      (unless (equal (get-text-property (point) 'face) closed)
         (let* ((line (delete-and-extract-region (point) (line-end-position)))
                (found (dnel-get-notification (string-to-number line) copy t)))
           (insert (if found (dnel-format-notification found notifications)
-                    (propertize line 'face '(:inherit shadow) 'local-map ())))))
+                    (propertize line 'face closed 'local-map ())))))
       (forward-line))
     (dolist (new (cdr copy))
       (insert (dnel-format-notification new notifications) ?\n))))
