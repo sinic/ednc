@@ -331,9 +331,12 @@
 
 (ert-deftest dnel--handle-notify-with-expiration-time-test ()
   (dnel--with-temp-server state
-    (let* ((args (dnel--get-test-args '(expire-timeout . 5)))
+    (let* ((timeout 5)
+           (args (dnel--get-test-args `(expire-timeout . ,timeout)))
            (id (apply #'dnel--dbus-talk 'call-method 'Notify args)))
-      (dnel--test-args-match state id args))))
+      (dnel--test-args-match state id args)
+      (sleep-for (/ (* 2 timeout) 1000.0))
+      (should-not (dnel-get-notification id state)))))  ; gone?
 
 (ert-deftest dnel--handle-notify-replace-test ()
   (dnel--with-temp-server state
