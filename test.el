@@ -149,14 +149,14 @@
   (dnel--with-temp-server state
     (apply #'dnel--notify state (dnel--get-test-args))
     (should (string-equal (dnel--format-notifications-1 state)
-                          "1 [test: foo]"))))
+                          " 1[test: foo]"))))
 
 (ert-deftest dnel--format-1-string-for-multiple-notifications-test ()
   (dnel--with-temp-server state
     (apply #'dnel--notify state (dnel--get-test-args))
     (apply #'dnel--notify state (dnel--get-test-args '(app-name . "tes1")))
     (should (string-equal (dnel--format-notifications-1 state)
-                          "2 [tes1: foo]1 [test: foo]"))))
+                          " 2[tes1: foo] 1[test: foo]"))))
 
 ;; Test use case 2:
 (ert-deftest dnel--format-2-string-for-no-notifications-test ()
@@ -173,21 +173,21 @@
   (dnel--with-temp-server state
     (apply #'dnel--notify state (dnel--get-test-args))
     (should (string-equal (dnel--format-notifications-2 state)
-                          "1 [test: foo]"))))
+                          " 1[test: foo]"))))
 
 (ert-deftest dnel--format-2-string-for-non-stacking-notifications-test ()
   (dnel--with-temp-server state
     (apply #'dnel--notify state (dnel--get-test-args))
     (apply #'dnel--notify state (dnel--get-test-args '(app-name . "tes1")))
     (should (string-equal (dnel--format-notifications-2 state)
-                          "2 [tes1: foo]1 [test: foo]"))))
+                          " 2[tes1: foo] 1[test: foo]"))))
 
 (ert-deftest dnel--propertize-string-for-stacking-notifications-test ()
   (dnel--with-temp-server state
     (apply #'dnel--notify state (dnel--get-test-args))
     (apply #'dnel--notify state (dnel--get-test-args '(summary . "bar")))
     (should (string-equal (dnel--format-notifications-2 state)
-                          "2 [test: bar]"))))
+                          " 2[test: bar]"))))
 
 ;; Test use case 3:
 (ert-deftest dnel--format-3-string-for-no-notifications-test ()
@@ -201,7 +201,7 @@
     (apply #'dnel--notify state (dnel--get-test-args))
     (with-temp-buffer
       (dnel--format-notifications-3 state)
-      (should (string-equal (buffer-string) "1 [test: foo]
+      (should (string-equal (buffer-string) " 1[test: foo]
 ")))))
 
 (ert-deftest dnel--format-3-string-for-multiple-notifications-test ()
@@ -211,8 +211,8 @@
         (dnel--format-notifications-3 state)
         (apply #'dnel--notify state (dnel--get-test-args '(app-name . "tes1")))
         (dnel--format-notifications-3 state)
-        (should (string-equal (buffer-string) "1 [test: foo]
-2 [tes1: foo]
+        (should (string-equal (buffer-string) " 1[test: foo]
+ 2[tes1: foo]
 ")))))
 
 (ert-deftest dnel--format-3-string-for-shadowed-notifications-test ()
@@ -224,8 +224,8 @@
         (dnel--format-notifications-3 state)
         (dnel-close-notification state id 3)
         (dnel--format-notifications-3 state)
-        (should (string-equal (buffer-string) "1 [test: foo]
-2 [tes1: foo]
+        (should (string-equal (buffer-string) " 1[test: foo]
+ 2[tes1: foo]
 "))))))
 
 ;; Test dnel-invoke-action:
@@ -269,7 +269,7 @@
   (dnel--with-temp-server state
     (apply #'dnel--notify state (dnel--get-test-args))
     (should (string-equal (dnel-format-notification (cadr state) state)
-                          "1 [test: foo]"))))
+                          " 1[test: foo]"))))
 
 ;; Test dnel--format-summary:
 (ert-deftest dnel--format-summary-test ()
@@ -379,6 +379,48 @@
         (should (stringp capability)))  ; correct types in aggregate,
       (dolist (required '("actions" "body"))  ; and minimal feature set?
         (should (member required capabilities))))))
+
+;; Test dnel--path-to-image and dnel--data-to-image:
+(ert-deftest dnel--test-nil-to-image ()
+  (should-not (dnel--path-to-image nil))
+  (should-not (dnel--data-to-image nil)))
+
+(ert-deftest dnel--test-unsupported-paths-to-image ()
+  (should-not (dnel--path-to-image "/nonexistent"))
+  (should-not (dnel--path-to-image
+               "https://www.gnu.org/software/emacs/images/emacs.png")))
+
+(ert-deftest dnel--test-nonexistent-path-to-image ()
+  (should-not (dnel--path-to-image "file:///nonexistent")))
+
+(ert-deftest dnel--test-unsupported-data-to-image ()
+  (let ((raw (append "abcABCxyzXYZ" nil)))
+    (should-not (dnel--data-to-image (list 2 2 7 t 8 3 raw)))  ; padding
+    (should-not (dnel--data-to-image (list 2 2 6 t 7 3 raw)))  ; bit-depth
+    (should-not (dnel--data-to-image (list 2 2 6 t 8 2 raw)))  ; non-RGB(A)
+    (should-not (dnel--data-to-image (list 2 2 6 t 8 5 raw)))))
+
+(ert-deftest dnel--test-data-to-image ()
+  (let ((raw (append "abcABCxyzXYZ" nil)))
+    (should (dnel--data-to-image (list 2 2 6 nil 8 3 raw))))  ; RGB
+  (let ((raw (append "abc!ABC?xyz?XYZ!" nil)))
+    (should (dnel--data-to-image (list 2 2 8 t 8 4 raw)))))  ; RGBA
+
+;; Test dnel--delete-every-fourth:
+(ert-deftest dnel--test-delete-every-fourth-from-empty-list ()
+  (let ((list (list)))
+    (dnel--delete-every-fourth list)
+    (should (null list))))
+
+(ert-deftest dnel--test-delete-every-fourth-from-short-list ()
+  (let ((list (list 'foo 'bar 'baz 'qux)))
+    (dnel--delete-every-fourth list)
+    (should (equal list '(foo bar baz)))))
+
+(ert-deftest dnel--test-delete-every-fourth-from-longer-list ()
+    (let ((list (list 'foo 'bar 'baz 'qux 'quux 'corge 'grault 'garply)))
+      (dnel--delete-every-fourth list)
+      (should (equal list '(foo bar baz quux corge grault)))))
 
 ;; Test dnel-get-notification:
 (ert-deftest dnel-get-notification-test ()

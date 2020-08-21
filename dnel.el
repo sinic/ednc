@@ -3,7 +3,7 @@
 
 ;; Author: Simon Nicolussi <sinic@sinic.name>
 ;; Version: 0.1
-;; Package-Requires: ((emacs "24.4"))
+;; Package-Requires: ((emacs "26.1"))
 ;; Keywords: unix
 ;; Homepage: https://github.com/sinic/dnel
 
@@ -76,9 +76,10 @@ REASON defaults to 3 (i.e., closed by call to CloseNotification)."
 (defun dnel-format-notification (notification state)
   "Propertize notification NOTIFICATION in STATE."
   (let ((get (apply-partially #'plist-get (cdr notification))))
-    (format "%s [%s: %s]"
-            (propertize (number-to-string (car notification)) 'invisible t)
-            (funcall get 'app-name)
+    (format " %s[%s: %s]"
+            (propertize (number-to-string (car notification)) 'invisible t
+                        'display (funcall get 'image))
+            (propertize (funcall get 'app-name))
             (apply #'dnel--format-summary (funcall get 'summary)
                    (car notification) state (mapcar get '(body actions))))))
 
@@ -136,12 +137,58 @@ are the received values as described in the Desktop Notification standard."
          (client (dbus-event-service-name last-input-event))
          (timer (when (> expire-timeout 0)
                   (run-at-time (/ expire-timeout 1000.0) nil
-                               #'dnel-close-notification state id 1))))
+                               #'dnel-close-notification state id 1)))
+         (image (dnel--get-image hints app-icon)))
     (push (list id 'app-name app-name 'summary summary 'body body 'client client
-                'timer timer 'actions actions 'app-icon app-icon 'hints hints)
+                'timer timer 'actions actions 'image image 'hints hints)
           (cdr state))
     (run-hooks 'dnel-state-changed-hook)
     id))
+
+(defun dnel--get-image (hints app-icon)
+  "Return image descriptor created from HINTS or from APP-ICON.
+
+This function is destructive."
+  (let ((image (or (dnel--data-to-image (caadr (assoc "image-data" hints)))
+                   (dnel--path-to-image (caadr (assoc "image-path" hints)))
+                   (dnel--path-to-image app-icon)
+                   (dnel--data-to-image (caadr (assoc "icon_data" hints))))))
+    (when image (setf (image-property image :max-height) (line-pixel-height)
+                      (image-property image :ascent) 90))
+    image))
+
+(defun dnel--path-to-image (image-path)
+  "Return image descriptor created from file URI IMAGE-PATH."
+  (let ((prefix "file://"))
+    (when (and image-path
+               (string-equal (substring image-path 0 (length prefix)) prefix))
+      (create-image (substring image-path (length prefix))))))
+
+(defun dnel--data-to-image (image-data)
+  "Return image descriptor created from raw (iiibiiay) IMAGE-DATA.
+
+This function is destructive."
+  (when image-data
+    (let* ((size (cons (pop image-data) (pop image-data)))
+           (row-stride (pop image-data))
+           (_has-alpha (pop image-data))
+           (bits-per-sample (pop image-data))
+           (channels (pop image-data))
+           (data (pop image-data)))
+      (when (and (= row-stride (* channels (car size))) (= bits-per-sample 8)
+                 (or (= channels 3) (= channels 4)))
+        (when (= channels 4) (dnel--delete-every-fourth data))
+        (create-image (format "P6\n%d %d\n255\n%s" (car size) (cdr size)
+                              (apply #'unibyte-string data))
+                      'pbm t)))))
+
+(defun dnel--delete-every-fourth (list)
+  "Destructively delete every fourth element from LIST.
+
+The length of LIST must be a multiple of 4."
+  (let ((cell (cons nil list)))
+    (while (cdr cell) (setcdr (setq cell (cdddr cell)) (cddr cell)))))
+
 
 ;; Timers call this function, so keep an eye on complexity:
 (defun dnel-get-notification (id state &optional remove)
