@@ -65,6 +65,7 @@ and present notifications can be kept in the following way:
 (defun update-notification-log (notifications)
   (let ((copy (copy-sequence notifications))
         (closed '(:strike-through t)))
+    (goto-char (point-min))
     (while (not (eobp))
       (unless (equal (get-text-property (point) 'face) closed)
         (let* ((line (delete-and-extract-region (point) (line-end-position)))
