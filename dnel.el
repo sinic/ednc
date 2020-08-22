@@ -160,7 +160,7 @@ This function is destructive."
 (defun dnel--path-to-image (image-path)
   "Return image descriptor created from file URI IMAGE-PATH."
   (let ((prefix "file://"))
-    (when (and image-path
+    (when (and (stringp image-path) (> (length image-path) (length prefix))
                (string-equal (substring image-path 0 (length prefix)) prefix))
       (create-image (substring image-path (length prefix))))))
 
@@ -188,7 +188,6 @@ This function is destructive."
 The length of LIST must be a multiple of 4."
   (let ((cell (cons nil list)))
     (while (cdr cell) (setcdr (setq cell (cdddr cell)) (cddr cell)))))
-
 
 ;; Timers call this function, so keep an eye on complexity:
 (defun dnel-get-notification (id state &optional remove)

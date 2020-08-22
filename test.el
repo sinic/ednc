@@ -386,7 +386,8 @@
   (should-not (dnel--data-to-image nil)))
 
 (ert-deftest dnel--test-unsupported-paths-to-image ()
-  (should-not (dnel--path-to-image "/nonexistent"))
+  (should-not (dnel--path-to-image "/ne"))  ; no schema, shorter than "file://",
+  (should-not (dnel--path-to-image "/nonexistent"))  ; and longer than "file://"
   (should-not (dnel--path-to-image
                "https://www.gnu.org/software/emacs/images/emacs.png")))
 
