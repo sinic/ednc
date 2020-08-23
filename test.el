@@ -374,10 +374,13 @@
     (should-not (dnel--data-to-image (list 2 2 6 t 8 5 raw)))))
 
 (ert-deftest dnel--test-data-to-image ()
-  (let ((raw (append "abcABCxyzXYZ" nil)))
-    (should (dnel--data-to-image (list 2 2 6 nil 8 3 raw))))  ; RGB
-  (let ((raw (append "abc!ABC?xyz?XYZ!" nil)))
-    (should (dnel--data-to-image (list 2 2 8 t 8 4 raw)))))  ; RGBA
+  (let* ((expect "P6\n2 2\n255\nabcABCxyzXYZ")
+         (data (append "abcABCxyzXYZ" nil))
+         (image (dnel--data-to-image (list 2 2 6 nil 8 3 data))))
+    (should (equal (image-property image :data) expect))  ; RGB
+    (setq data (append "abc!ABC?xyz?XYZ!" nil)
+          image (dnel--data-to-image (list 2 2 8 t 8 4 data)))
+    (should (equal (image-property image :data) expect))))  ; RGBA
 
 ;; Test dnel--delete-every-fourth:
 (ert-deftest dnel--test-delete-every-fourth-from-empty-list ()
