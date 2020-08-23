@@ -1,5 +1,7 @@
+* A Notification Server for Emacs
+
 DNel is an Emacs package that implements a
-[[https://people.gnome.org/~mccann/docs/notification-spec/notification-spec-latest.html][Desktop Notifications server]]
+[[https://people.gnome.org/~mccann/docs/notification-spec/notification-spec-latest.html][Desktop Notifications service]]
 in pure Lisp, aspiring to be a small, but flexible drop-in replacement for
 standalone daemons like [[https://dunst-project.org/][Dunst]].
 Active notifications are tracked in the global variable ~dnel-state~
@@ -7,7 +9,7 @@ whenever the global minor mode ~dnel-mode~ is active.
 Users are free to monitor the contents of that variable as they see fit, though
 DNel does provide some additional convenience functions.
 
-* Getting Started
+** Getting Started
 
 For now, simply execute the ~package-install-file~ command and point it to a
 local copy of this repository.
@@ -18,7 +20,7 @@ After installation, ensure that no other notification daemon is active, execute
 suggestions).
 Enjoy!
 
-** Use Case 1: Show Active Notifications
+*** Use Case 1: Show Active Notifications
 
 Simply showing all active notifications in the mode-line can be accomplished by
 defining a function that returns the notifications as a string:
@@ -43,7 +45,7 @@ Every notification has text properties so that
 - the middle mouse button shows a menu of all available actions, and
 - the right mouse button closes the notification.
 
-** Use Case 2: Stack Active Notifications by Application
+*** Use Case 2: Stack Active Notifications by Application
 
 Instead of showing all notifications, it is possible to only display the newest
 notification per application by defining an appropriate function:
@@ -65,7 +67,7 @@ It is called exactly the same as the function in the previous case:
           (lambda () (force-mode-line-update t)))
 #+END_SRC
 
-** Use Case 3: Log All Notifications
+*** Use Case 3: Log All Notifications
 
 Instead of or in addition to one of the previous use cases, a log of past
 and present notifications can be kept by a function like this:
