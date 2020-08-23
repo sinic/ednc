@@ -15,33 +15,9 @@
 ;; along with this program.  If not, see <https://www.gnu.org/licenses/>.
 (require 'dnel)
 
-;; Use cases from README:
-(defun dnel--format-notifications-1 (notifications)
-  (mapconcat (lambda (notification)
-               (dnel-format-notification notification notifications))
-             (cdr notifications) ""))
-
-(defun dnel--format-notifications-2 (notifications &optional hide)
-  (mapconcat (lambda (notification)
-               (let ((app-name (plist-get (cdr notification) 'app-name)))
-                 (if (member app-name hide) ""
-                   (push app-name hide)
-                   (dnel-format-notification notification notifications))))
-             (cdr notifications) ""))
-
-(defun dnel--format-notifications-3 (notifications)
-  (goto-char (point-min))
-  (let ((copy (copy-sequence notifications))
-        (closed '(:strike-through t)))
-    (while (not (eobp))
-      (unless (equal (get-text-property (point) 'face) closed)
-        (let* ((line (delete-and-extract-region (point) (line-end-position)))
-               (found (dnel-get-notification (string-to-number line) copy t)))
-          (insert (if found (dnel-format-notification found notifications)
-                    (propertize line 'face closed 'local-map ())))))
-      (forward-line))
-    (dolist (new (cdr copy))
-      (insert (dnel-format-notification new notifications) ?\n))))
+;; Load the use cases documented in README.org:
+(require 'ob-tangle)
+(load-file (car (org-babel-tangle-file "README.org")))
 
 ;; Helpers for testing:
 (defmacro dnel--with-temp-server (notifications &rest body)
@@ -141,89 +117,85 @@
       (should (ert-test-failed-p (ert-run-test test))))))
 
 ;; Test use case 1:
-(ert-deftest dnel--format-1-string-for-no-notifications-test ()
+(ert-deftest dnel--list-no-notifications-test ()
   (dnel--with-temp-server state
-    (should (string-equal "" (dnel--format-notifications-1 state)))))
+    (should (string-equal "" (list-notifications state)))))
 
-(ert-deftest dnel--format-1-string-for-single-notification-test ()
+(ert-deftest dnel--list-single-notification-test ()
   (dnel--with-temp-server state
     (apply #'dnel--notify state (dnel--get-test-args))
-    (should (string-equal (dnel--format-notifications-1 state)
-                          " 1[test: foo]"))))
+    (should (string-equal (list-notifications state) " 1[test: foo]"))))
 
-(ert-deftest dnel--format-1-string-for-multiple-notifications-test ()
+(ert-deftest dnel--list-multiple-notifications-test ()
   (dnel--with-temp-server state
     (apply #'dnel--notify state (dnel--get-test-args))
     (apply #'dnel--notify state (dnel--get-test-args '(app-name . "tes1")))
-    (should (string-equal (dnel--format-notifications-1 state)
+    (should (string-equal (list-notifications state)
                           " 2[tes1: foo] 1[test: foo]"))))
 
 ;; Test use case 2:
-(ert-deftest dnel--format-2-string-for-no-notifications-test ()
+(ert-deftest dnel--stack-no-notifications-test ()
   (dnel--with-temp-server state
-    (should (string-equal "" (dnel--format-notifications-2 state)))))
+    (should (string-equal "" (stack-notifications state)))))
 
-(ert-deftest dnel--format-2-string-for-hidden-notification-test ()
-  (dnel--with-temp-server state
-    (apply #'dnel--notify state (dnel--get-test-args))
-    (should (string-equal ""
-             (dnel--format-notifications-2 state '("test"))))))
-
-(ert-deftest dnel--format-2-string-for-single-notification-test ()
+(ert-deftest dnel--stack-hidden-notification-test ()
   (dnel--with-temp-server state
     (apply #'dnel--notify state (dnel--get-test-args))
-    (should (string-equal (dnel--format-notifications-2 state)
-                          " 1[test: foo]"))))
+    (should (string-equal "" (stack-notifications state '("test"))))))
 
-(ert-deftest dnel--format-2-string-for-non-stacking-notifications-test ()
+(ert-deftest dnel--stack-for-single-notification-test ()
+  (dnel--with-temp-server state
+    (apply #'dnel--notify state (dnel--get-test-args))
+    (should (string-equal (stack-notifications state) " 1[test: foo]"))))
+
+(ert-deftest dnel--stack-non-stacking-notifications-test ()
   (dnel--with-temp-server state
     (apply #'dnel--notify state (dnel--get-test-args))
     (apply #'dnel--notify state (dnel--get-test-args '(app-name . "tes1")))
-    (should (string-equal (dnel--format-notifications-2 state)
+    (should (string-equal (stack-notifications state)
                           " 2[tes1: foo] 1[test: foo]"))))
 
-(ert-deftest dnel--propertize-string-for-stacking-notifications-test ()
+(ert-deftest dnel--stack-stacking-notifications-test ()
   (dnel--with-temp-server state
     (apply #'dnel--notify state (dnel--get-test-args))
     (apply #'dnel--notify state (dnel--get-test-args '(summary . "bar")))
-    (should (string-equal (dnel--format-notifications-2 state)
-                          " 2[test: bar]"))))
+    (should (string-equal (stack-notifications state) " 2[test: bar]"))))
 
 ;; Test use case 3:
-(ert-deftest dnel--format-3-string-for-no-notifications-test ()
+(ert-deftest dnel--log-no-notifications-test ()
   (dnel--with-temp-server state
     (with-temp-buffer
-      (dnel--format-notifications-3 state)
+      (update-notification-log state)
       (should (string-equal (buffer-string) "")))))
 
-(ert-deftest dnel--format-3-string-for-single-notification-test ()
+(ert-deftest dnel--log-single-notification-test ()
   (dnel--with-temp-server state
     (apply #'dnel--notify state (dnel--get-test-args))
     (with-temp-buffer
-      (dnel--format-notifications-3 state)
+      (update-notification-log state)
       (should (string-equal (buffer-string) " 1[test: foo]
 ")))))
 
-(ert-deftest dnel--format-3-string-for-multiple-notifications-test ()
+(ert-deftest dnel--log-multiple-notifications-test ()
     (dnel--with-temp-server state
       (apply #'dnel--notify state (dnel--get-test-args))
       (with-temp-buffer
-        (dnel--format-notifications-3 state)
+        (update-notification-log state)
         (apply #'dnel--notify state (dnel--get-test-args '(app-name . "tes1")))
-        (dnel--format-notifications-3 state)
+        (update-notification-log state)
         (should (string-equal (buffer-string) " 1[test: foo]
  2[tes1: foo]
 ")))))
 
-(ert-deftest dnel--format-3-string-for-shadowed-notifications-test ()
+(ert-deftest dnel--log-closed-notifications-test ()
   (dnel--with-temp-server state
     (let ((id (apply #'dnel--notify state (dnel--get-test-args))))
       (with-temp-buffer
-        (dnel--format-notifications-3 state)
+        (update-notification-log state)
         (apply #'dnel--notify state (dnel--get-test-args '(app-name . "tes1")))
-        (dnel--format-notifications-3 state)
+        (update-notification-log state)
         (dnel-close-notification state id 3)
-        (dnel--format-notifications-3 state)
+        (update-notification-log state)
         (should (string-equal (buffer-string) " 1[test: foo]
  2[tes1: foo]
 "))))))
