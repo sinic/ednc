@@ -26,10 +26,9 @@ Simply showing all active notifications in the mode-line can be accomplished by
 defining a function that returns the notifications as a string:
 #+NAME: list
 #+BEGIN_SRC emacs-lisp :tangle yes
-(defun list-notifications (notifications)
-  (mapconcat (lambda (notification)
-               (dnel-format-notification notification notifications))
-             (cdr notifications) ""))
+(defun list-notifications (state)
+  (mapconcat (lambda (notification) (dnel-format-notification notification state))
+             (cdr state) ""))
 #+END_SRC
 
 The function is called from the mode line for every change to the notifications:
@@ -50,13 +49,13 @@ Instead of showing all notifications, it is possible to only display the newest
 notification per application by defining an appropriate function:
 #+NAME: stack
 #+BEGIN_SRC emacs-lisp :tangle yes
-(defun stack-notifications (notifications &optional hide)
+(defun stack-notifications (state &optional hide)
   (mapconcat (lambda (notification)
                (let ((app-name (plist-get (cdr notification) 'app-name)))
                  (if (member app-name hide) ""
                    (push app-name hide)
-                   (dnel-format-notification notification notifications))))
-             (cdr notifications) ""))
+                   (dnel-format-notification notification state))))
+             (cdr state) ""))
 #+END_SRC
 
 It is called exactly the same as the function in the previous case:
@@ -71,19 +70,19 @@ Instead of or in addition to one of the previous use cases, a log of past
 and present notifications can be kept by a function like this:
 #+NAME: log
 #+BEGIN_SRC emacs-lisp :tangle yes
-(defun update-notification-log (notifications)
-  (let ((copy (copy-sequence notifications))
+(defun update-notification-log (state)
+  (let ((copy (copy-sequence state))
         (closed '(:strike-through t)))
     (goto-char (point-min))
     (while (not (eobp))
       (unless (equal (get-text-property (point) 'face) closed)
         (let* ((line (delete-and-extract-region (point) (line-end-position)))
                (found (dnel-get-notification (string-to-number line) copy t)))
-          (insert (if found (dnel-format-notification found notifications)
+          (insert (if found (dnel-format-notification found state)
                     (propertize line 'face closed 'local-map ())))))
       (forward-line))
     (dolist (new (cdr copy))
-      (insert (dnel-format-notification new notifications) ?\n))))
+      (insert (dnel-format-notification new state) ?\n))))
 #+END_SRC
 
 Like before, this function is called on every change to the notifications:
