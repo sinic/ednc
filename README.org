@@ -27,8 +27,7 @@ defining a function that returns the notifications as a string:
 #+NAME: list
 #+BEGIN_SRC emacs-lisp :tangle yes
 (defun list-notifications (state)
-  (mapconcat (lambda (notification) (dnel-format-notification state notification))
-             (cdr state) ""))
+  (mapconcat (apply-partially #'dnel-format-notification state) (cdr state) ""))
 #+END_SRC
 
 The function is called from the mode line for every change to the notifications:
