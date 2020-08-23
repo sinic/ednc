@@ -55,7 +55,7 @@ its cdr is a property list of the notification's attributes.")
   "Invoke ACTION of the notification identified by ID in STATE.
 
 ACTION defaults to the key \"default\"."
-  (let ((notification (dnel-get-notification id state)))
+  (let ((notification (dnel-get-notification state id)))
     (when notification
       (dnel--dbus-talk-to (plist-get (cdr notification) 'client)
                           'send-signal 'ActionInvoked id
@@ -65,7 +65,7 @@ ACTION defaults to the key \"default\"."
   "Close the notification identified by ID in STATE for REASON.
 
 REASON defaults to 3 (i.e., closed by call to CloseNotification)."
-  (let* ((notification (dnel-get-notification id state t))
+  (let* ((notification (dnel-get-notification state id t))
          (reason (or reason 3)))
     (if (not notification) (when (= reason 3) (signal 'dbus-error ()))
       (run-hooks 'dnel-state-changed-hook)
@@ -73,23 +73,23 @@ REASON defaults to 3 (i.e., closed by call to CloseNotification)."
                           'send-signal 'NotificationClosed id reason)))
   :ignore)
 
-(defun dnel-format-notification (notification state)
-  "Propertize notification NOTIFICATION in STATE."
+(defun dnel-format-notification (state notification)
+  "Return propertized string describing a NOTIFICATION in STATE."
   (let ((get (apply-partially #'plist-get (cdr notification))))
     (format " %s[%s: %s]"
             (propertize (number-to-string (car notification)) 'invisible t
                         'display (funcall get 'image))
             (propertize (funcall get 'app-name))
-            (apply #'dnel--format-summary (funcall get 'summary)
-                   (car notification) state (mapcar get '(body actions))))))
+            (apply #'dnel--format-summary state (car notification)
+                   (funcall get 'summary) (mapcar get '(body actions))))))
 
-(defun dnel--format-summary (summary id state &optional body actions)
+(defun dnel--format-summary (state id summary &optional body actions)
   "Propertize SUMMARY for notification identified by ID in STATE.
 
 The optional BODY is shown as a tooltip, ACTIONS can be selected from a menu."
   (let ((controls `((mouse-1 . ,(lambda () (interactive)
                                   (dnel-invoke-action state id)))
-                    (down-mouse-2 . ,(dnel--format-actions actions id state))
+                    (down-mouse-2 . ,(dnel--format-actions state id actions))
                     (mouse-3 . ,(lambda () (interactive)
                                   (dnel-close-notification state id 2))))))
     (apply #'propertize summary 'mouse-face 'mode-line-highlight
@@ -97,7 +97,7 @@ The optional BODY is shown as a tooltip, ACTIONS can be selected from a menu."
                                (mode-line keymap . ,controls) . ,controls)
            (when (and body (not (string-equal "" body))) `(help-echo ,body)))))
 
-(defun dnel--format-actions (actions id state)
+(defun dnel--format-actions (state id actions)
   "Propertize ACTIONS for notification identified by ID in STATE."
   (let ((result (list 'keymap)))
     (dotimes (i (/ (length actions) 2))
@@ -132,7 +132,7 @@ The optional BODY is shown as a tooltip, ACTIONS can be selected from a menu."
 APP-NAME, REPLACES-ID, APP-ICON, SUMMARY, BODY, ACTIONS, HINTS, EXPIRE-TIMEOUT
 are the received values as described in the Desktop Notification standard."
   (let* ((id (or (unless (zerop replaces-id)
-                   (car (dnel-get-notification replaces-id state t)))
+                   (car (dnel-get-notification state replaces-id t)))
                  (setcar state (1+ (car state)))))
          (client (dbus-event-service-name last-input-event))
          (timer (when (> expire-timeout 0)
@@ -190,8 +190,8 @@ The length of LIST must be a multiple of 4."
     (while (cdr cell) (setcdr (setq cell (cdddr cell)) (cddr cell)))))
 
 ;; Timers call this function, so keep an eye on complexity:
-(defun dnel-get-notification (id state &optional remove)
-  "Return notification identified by ID in STATE.
+(defun dnel-get-notification (state id &optional remove)
+  "Return from STATE the notification identified by ID.
 
 The returned notification is deleted from STATE if REMOVE is non-nil."
   (while (and (cdr state) (/= id (caadr state)))

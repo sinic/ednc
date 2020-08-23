@@ -27,7 +27,7 @@ defining a function that returns the notifications as a string:
 #+NAME: list
 #+BEGIN_SRC emacs-lisp :tangle yes
 (defun list-notifications (state)
-  (mapconcat (lambda (notification) (dnel-format-notification notification state))
+  (mapconcat (lambda (notification) (dnel-format-notification state notification))
              (cdr state) ""))
 #+END_SRC
 
@@ -54,7 +54,7 @@ notification per application by defining an appropriate function:
                (let ((app-name (plist-get (cdr notification) 'app-name)))
                  (if (member app-name hide) ""
                    (push app-name hide)
-                   (dnel-format-notification notification state))))
+                   (dnel-format-notification state notification))))
              (cdr state) ""))
 #+END_SRC
 
@@ -77,12 +77,12 @@ and present notifications can be kept by a function like this:
     (while (not (eobp))
       (unless (equal (get-text-property (point) 'face) closed)
         (let* ((line (delete-and-extract-region (point) (line-end-position)))
-               (found (dnel-get-notification (string-to-number line) copy t)))
-          (insert (if found (dnel-format-notification found state)
+               (found (dnel-get-notification copy (string-to-number line) t)))
+          (insert (if found (dnel-format-notification state found)
                     (propertize line 'face closed 'local-map ())))))
       (forward-line))
     (dolist (new (cdr copy))
-      (insert (dnel-format-notification new state) ?\n))))
+      (insert (dnel-format-notification state new) ?\n))))
 #+END_SRC
 
 Like before, this function is called on every change to the notifications:
