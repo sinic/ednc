@@ -20,14 +20,18 @@ Enjoy!
 
 ** Use Case 1: Show Active Notifications
 
-Simply showing all active notifications in the mode-line could be accomplished
-in the following way:
-#+BEGIN_SRC emacs-lisp
-(defun format-notifications (notifications)
+Simply showing all active notifications in the mode-line can be accomplished by
+defining a function that returns the notifications as a string:
+#+NAME: list
+#+BEGIN_SRC emacs-lisp :tangle yes
+(defun list-notifications (notifications)
   (mapconcat (lambda (notification)
                (dnel-format-notification notification notifications))
              (cdr notifications) ""))
+#+END_SRC
 
+The function is called from the mode line for every change to the notifications:
+#+BEGIN_SRC emacs-lisp
 (nconc global-mode-string '((:eval (format-notifications dnel-state))))
 (add-hook 'dnel-state-changed-hook
           (lambda () (force-mode-line-update t)))
@@ -42,16 +46,20 @@ Every notification has text properties so that
 ** Use Case 2: Stack Active Notifications by Application
 
 Instead of showing all notifications, it is possible to only display the newest
-notification per application in the following way:
-#+BEGIN_SRC emacs-lisp
-(defun format-notifications (notifications &optional hide)
+notification per application by defining an appropriate function:
+#+NAME: stack
+#+BEGIN_SRC emacs-lisp :tangle yes
+(defun stack-notifications (notifications &optional hide)
   (mapconcat (lambda (notification)
                (let ((app-name (plist-get (cdr notification) 'app-name)))
                  (if (member app-name hide) ""
                    (push app-name hide)
                    (dnel-format-notification notification notifications))))
              (cdr notifications) ""))
+#+END_SRC
 
+It is called exactly the same as the function in the previous case:
+#+BEGIN_SRC emacs-lisp
 (nconc global-mode-string '((:eval (format-notifications dnel-state))))
 (add-hook 'dnel-state-changed-hook
           (lambda () (force-mode-line-update t)))
@@ -60,8 +68,9 @@ notification per application in the following way:
 ** Use Case 3: Log All Notifications
 
 Instead of or in addition to one of the previous use cases, a log of past
-and present notifications can be kept in the following way:
-#+BEGIN_SRC emacs-lisp
+and present notifications can be kept by a function like this:
+#+NAME: log
+#+BEGIN_SRC emacs-lisp :tangle yes
 (defun update-notification-log (notifications)
   (let ((copy (copy-sequence notifications))
         (closed '(:strike-through t)))
@@ -75,7 +84,10 @@ and present notifications can be kept in the following way:
       (forward-line))
     (dolist (new (cdr copy))
       (insert (dnel-format-notification new notifications) ?\n))))
+#+END_SRC
 
+Like before, this function is called on every change to the notifications:
+#+BEGIN_SRC emacs-lisp
 (add-hook 'dnel-state-changed-hook
           (lambda () (with-current-buffer (get-buffer-create "*Notifications*")
                        (save-excursion
