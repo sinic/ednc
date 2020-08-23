@@ -94,4 +94,4 @@ Like before, this function is called on every change to the notifications:
 #+END_SRC
 
 Active notifications have text properties as described above; closed or expired
-notifications only have the tooltip and are grayed out.
+notifications only have the tooltip and are striked through.
