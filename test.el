@@ -352,6 +352,24 @@
       (dolist (required '("actions" "body"))  ; and minimal feature set?
         (should (member required capabilities))))))
 
+;; Test dnel--get-hint:
+(ert-deftest dnel--get-hint-test ()
+  (let ((hints '(("foo" (("bar" "baz"))) ("qux" ("quux")))))
+    (should (equal '("bar" "baz") (dnel--get-hint hints "foo")))
+    (should (string-equal "quux" (dnel--get-hint hints "qux")))))
+
+(ert-deftest dnel--get-and-remove-hint-test ()
+  (let ((hints (list (list "foo" '(("bar" "baz"))) (list "qux" '("quux")))))
+    (should (equal '("bar" "baz") (dnel--get-hint hints "foo" t)))
+    (should-not (dnel--get-hint hints "foo"))  ; older gone, and
+    (should (string-equal "quux" (dnel--get-hint hints "qux" t)))
+    (should-not (dnel--get-hint hints "qux"))))  ; newest gone?
+
+(ert-deftest dnel--get-or-remove-nonexistent-hint-test ()
+  (let ((hints nil))
+    (should-not (dnel--get-hint hints "foo" t))  ; neither remove,
+    (should-not (dnel--get-hint hints "foo"))))  ; nor get only?
+
 ;; Test dnel--path-to-image and dnel--data-to-image:
 (ert-deftest dnel--test-nil-to-image ()
   (should-not (dnel--path-to-image nil))

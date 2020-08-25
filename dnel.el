@@ -149,13 +149,22 @@ are the received values as described in the Desktop Notification standard."
   "Return image descriptor created from HINTS or from APP-ICON.
 
 This function is destructive."
-  (let ((image (or (dnel--data-to-image (caadr (assoc "image-data" hints)))
-                   (dnel--path-to-image (caadr (assoc "image-path" hints)))
+  (let ((image (or (dnel--data-to-image (dnel--get-hint hints "image-data" t))
+                   (dnel--path-to-image (dnel--get-hint hints "image-path" t))
                    (dnel--path-to-image app-icon)
-                   (dnel--data-to-image (caadr (assoc "icon_data" hints))))))
+                   (dnel--data-to-image (dnel--get-hint hints "icon_data" t)))))
     (when image (setf (image-property image :max-height) (line-pixel-height)
                       (image-property image :ascent) 90))
     image))
+
+(defun dnel--get-hint (hints key &optional remove)
+  "Return and delete from HINTS the value specified by KEY.
+
+The returned value is removed from HINTS if REMOVE is non-nil."
+  (let* ((pair (assoc key hints))
+         (tail (cdr pair)))
+    (when (and remove pair) (setcdr pair nil))
+    (caar tail)))
 
 (defun dnel--path-to-image (image-path)
   "Return image descriptor created from file URI IMAGE-PATH."
