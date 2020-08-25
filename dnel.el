@@ -75,8 +75,10 @@ REASON defaults to 3 (i.e., closed by call to CloseNotification)."
 
 (defun dnel-format-notification (state notification)
   "Return propertized string describing a NOTIFICATION in STATE."
-  (let ((get (apply-partially #'plist-get (cdr notification))))
-    (format " %s[%s: %s]"
+  (let* ((get (apply-partially #'plist-get (cdr notification)))
+         (urgency (or (dnel--get-hint (funcall get 'hints) "urgency") 2))
+         (inherit (if (<= urgency 1) 'shadow (if (>= urgency 3) 'bold))))
+    (format (propertize " %s[%s: %s]" 'face (list :inherit inherit))
             (propertize (number-to-string (car notification)) 'invisible t
                         'display (funcall get 'image))
             (propertize (funcall get 'app-name))
