@@ -23,9 +23,9 @@
 ;;; Commentary:
 ;; DNel is an Emacs package that implements a Desktop Notifications
 ;; server in pure Lisp, aspiring to be a small, but flexible drop-in
-;; replacement for standalone daemons like Dunst. Active notifications
+;; replacement for standalone daemons like Dunst.  Active notifications
 ;; are tracked in the global variable `dnel-state' whenever the global
-;; minor mode `dnel-mode' is active. Users are free to monitor the
+;; minor mode `dnel-mode' is active.  Users are free to monitor the
 ;; contents of that variable as they see fit, though DNel does provide
 ;; some additional convenience functions.
 
