@@ -189,9 +189,9 @@ This function is destructive."
       (when (and (= row-stride (* channels (car size))) (= bits-per-sample 8)
                  (or (= channels 3) (= channels 4)))
         (when (= channels 4) (dnel--delete-every-fourth data))
-        (create-image (format "P6\n%d %d\n255\n%s" (car size) (cdr size)
-                              (apply #'unibyte-string data))
-                      'pbm t)))))
+        (let ((header (format "P6\n%d %d\n255\n" (car size) (cdr size))))
+          (create-image (apply #'unibyte-string (append header data))
+                        'pbm t))))))
 
 (defun dnel--delete-every-fourth (list)
   "Destructively delete every fourth element from LIST.
