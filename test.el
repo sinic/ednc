@@ -417,7 +417,7 @@
       (should (equal list '(foo bar baz quux corge grault)))))
 
 ;; Test dnel-get-notification:
-(ert-deftest dnel-get-notification-test ()
+(ert-deftest dnel--get-notification-test ()
   (dnel--with-temp-server state
     (apply #'dnel--notify state (dnel--get-test-args))
     (let* ((older (apply #'dnel--notify state (dnel--get-test-args)))
