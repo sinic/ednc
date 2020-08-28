@@ -186,19 +186,24 @@ This function is destructive."
            (bits-per-sample (pop image-data))
            (channels (pop image-data))
            (data (pop image-data)))
-      (when (and (= row-stride (* channels (car size))) (= bits-per-sample 8)
-                 (or (= channels 3) (= channels 4)))
-        (when (= channels 4) (dnel--delete-every-fourth data))
+      (when (and (= bits-per-sample 8) (or (= channels 3) (= channels 4)))
+        (dnel--delete-padding data (* channels (car size)) row-stride)
+        (dnel--delete-padding data 3 channels)
         (let ((header (format "P6\n%d %d\n255\n" (car size) (cdr size))))
           (create-image (apply #'unibyte-string (append header data))
                         'pbm t))))))
 
-(defun dnel--delete-every-fourth (list)
-  "Destructively delete every fourth element from LIST.
+(defun dnel--delete-padding (list payload total)
+  "Delete LIST elements between multiples of PAYLOAD and TOTAL.
 
-The length of LIST must be a multiple of 4."
-  (let ((cell (cons nil list)))
-    (while (cdr cell) (setcdr (setq cell (cdddr cell)) (cddr cell)))))
+This function is destructive."
+  (when (< payload total)
+    (let ((cell (cons nil list))
+          (delete (if (and (= payload 3) (= total 4)) #'cddr  ; fast opcode
+                    (apply-partially #'nthcdr (- total payload -1))))
+          (keep (if (= payload 3) #'cdddr (apply-partially #'nthcdr payload))))
+      (while (cdr cell)
+        (setcdr (setq cell (funcall keep cell)) (funcall delete cell))))))
 
 ;; Timers call this function, so keep an eye on complexity:
 (defun dnel-get-notification (state id &optional remove)

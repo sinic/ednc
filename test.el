@@ -386,7 +386,6 @@
 
 (ert-deftest dnel--test-unsupported-data-to-image ()
   (let ((raw (append "abcABCxyzXYZ" nil)))
-    (should-not (dnel--data-to-image (list 2 2 7 t 8 3 raw)))  ; padding
     (should-not (dnel--data-to-image (list 2 2 6 t 7 3 raw)))  ; bit-depth
     (should-not (dnel--data-to-image (list 2 2 6 t 8 2 raw)))  ; non-RGB(A)
     (should-not (dnel--data-to-image (list 2 2 6 t 8 5 raw)))))
@@ -400,21 +399,21 @@
           image (dnel--data-to-image (list 2 2 8 t 8 4 data)))
     (should (equal (image-property image :data) expect))))  ; RGBA
 
-;; Test dnel--delete-every-fourth:
-(ert-deftest dnel--test-delete-every-fourth-from-empty-list ()
+;; Test dnel--delete-padding:
+(ert-deftest dnel--test-delete-padding-from-empty-list ()
   (let ((list (list)))
-    (dnel--delete-every-fourth list)
+    (dnel--delete-padding list 3 5)
     (should (null list))))
 
-(ert-deftest dnel--test-delete-every-fourth-from-short-list ()
-  (let ((list (list 'foo 'bar 'baz 'qux)))
-    (dnel--delete-every-fourth list)
+(ert-deftest dnel--test-delete-padding-from-short-list ()
+  (let ((list (list 'foo 'bar 'baz 'qux 'quux)))
+    (dnel--delete-padding list 3 5)
     (should (equal list '(foo bar baz)))))
 
-(ert-deftest dnel--test-delete-every-fourth-from-longer-list ()
-    (let ((list (list 'foo 'bar 'baz 'qux 'quux 'corge 'grault 'garply)))
-      (dnel--delete-every-fourth list)
-      (should (equal list '(foo bar baz quux corge grault)))))
+(ert-deftest dnel--test-delete-padding-from-longer-list ()
+    (let ((list (list 'foo 'bar 'baz 'qux 'quux 'corge)))
+      (dnel--delete-padding list 1 3)
+      (should (equal list '(foo qux)))))
 
 ;; Test dnel-get-notification:
 (ert-deftest dnel--get-notification-test ()
