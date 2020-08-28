@@ -371,7 +371,7 @@
     (should-not (dnel--get-hint hints "foo"))))  ; nor get only?
 
 ;; Test dnel--path-to-image and dnel--data-to-image:
-(ert-deftest dnel--test-nil-to-image ()
+(ert-deftest dnel--nil-to-image-test ()
   (should-not (dnel--path-to-image nil))
   (should-not (dnel--data-to-image nil)))
 
@@ -381,16 +381,16 @@
   (should-not (dnel--path-to-image
                "https://www.gnu.org/software/emacs/images/emacs.png")))
 
-(ert-deftest dnel--test-nonexistent-path-to-image ()
+(ert-deftest dnel--nonexistent-path-to-image-test ()
   (should-not (dnel--path-to-image "file:///nonexistent")))
 
-(ert-deftest dnel--test-unsupported-data-to-image ()
+(ert-deftest dnel--unsupported-data-to-image-test ()
   (let ((raw (append "abcABCxyzXYZ" nil)))
     (should-not (dnel--data-to-image (list 2 2 6 t 7 3 raw)))  ; bit-depth
     (should-not (dnel--data-to-image (list 2 2 6 t 8 2 raw)))  ; non-RGB(A)
     (should-not (dnel--data-to-image (list 2 2 6 t 8 5 raw)))))
 
-(ert-deftest dnel--test-data-to-image ()
+(ert-deftest dnel--data-to-image-test ()
   (let* ((expect "P6\n2 2\n255\nabcABCxyzXYZ")
          (data (append "abcABCxyzXYZ" nil))
          (image (dnel--data-to-image (list 2 2 6 nil 8 3 data))))
@@ -400,17 +400,17 @@
     (should (equal (image-property image :data) expect))))  ; RGBA
 
 ;; Test dnel--delete-padding:
-(ert-deftest dnel--test-delete-padding-from-empty-list ()
+(ert-deftest dnel--delete-padding-from-empty-list-test ()
   (let ((list (list)))
     (dnel--delete-padding list 3 5)
     (should (null list))))
 
-(ert-deftest dnel--test-delete-padding-from-short-list ()
+(ert-deftest dnel--delete-padding-from-short-list-test ()
   (let ((list (list 'foo 'bar 'baz 'qux 'quux)))
     (dnel--delete-padding list 3 5)
     (should (equal list '(foo bar baz)))))
 
-(ert-deftest dnel--test-delete-padding-from-longer-list ()
+(ert-deftest dnel--delete-padding-from-longer-list-test ()
     (let ((list (list 'foo 'bar 'baz 'qux 'quux 'corge)))
       (dnel--delete-padding list 1 3)
       (should (equal list '(foo qux)))))
