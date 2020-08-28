@@ -405,6 +405,11 @@
     (dnel--delete-padding list 3 5)
     (should (null list))))
 
+(ert-deftest dnel--delete-zero-length-padding-from-list-test ()
+  (let ((list (list 'foo 'bar 'baz 'qux 'quux 'corge)))
+    (dnel--delete-padding list 3 3)
+    (should (equal list '(foo bar baz qux quux corge)))))
+
 (ert-deftest dnel--delete-padding-from-short-list-test ()
   (let ((list (list 'foo 'bar 'baz 'qux 'quux)))
     (dnel--delete-padding list 3 5)
