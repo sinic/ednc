@@ -410,10 +410,20 @@
     (dnel--delete-padding list 3 5)
     (should (equal list '(foo bar baz)))))
 
+(ert-deftest dnel--delete-alpha-channel-from-short-list-test ()
+  (let ((list (list 'foo 'bar 'baz 'qux)))
+    (dnel--delete-padding list 3 4)
+    (should (equal list '(foo bar baz)))))
+
 (ert-deftest dnel--delete-padding-from-longer-list-test ()
     (let ((list (list 'foo 'bar 'baz 'qux 'quux 'corge)))
       (dnel--delete-padding list 1 3)
       (should (equal list '(foo qux)))))
+
+(ert-deftest dnel--delete-alpha-channel-from-longer-list-test ()
+  (let ((list (list 'foo 'bar 'baz 'qux 'quux 'corge 'grault 'garply)))
+    (dnel--delete-padding list 3 4)
+    (should (equal list '(foo bar baz quux corge grault)))))
 
 ;; Test dnel-get-notification:
 (ert-deftest dnel--get-notification-test ()
