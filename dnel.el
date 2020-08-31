@@ -188,7 +188,7 @@ This function is destructive."
            (bits-per-sample (pop image-data))
            (channels (pop image-data))
            (data (pop image-data)))
-      (when (and (= bits-per-sample 8) (or (= channels 3) (= channels 4)))
+      (when (and (= bits-per-sample 8) (<= 3 channels 4))
         (dnel--delete-padding data (* channels (car size)) row-stride)
         (dnel--delete-padding data 3 channels)
         (let ((header (format "P6\n%d %d\n255\n" (car size) (cdr size))))
