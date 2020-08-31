@@ -33,7 +33,8 @@ defining a function that returns the notifications as a string:
 The function is called from the mode line for every change to the notifications:
 #+BEGIN_SRC emacs-lisp
 (nconc global-mode-string '((:eval (list-notifications dnel-state))))
-(add-hook 'dnel-state-changed-hook (lambda () (force-mode-line-update t)))
+(add-hook 'dnel-state-changed-functions (lambda (&rest _)
+                                          (force-mode-line-update t)))
 #+END_SRC
 
 Every notification has text properties so that
@@ -60,37 +61,7 @@ notification per application by defining an appropriate function:
 It is called exactly the same as the function in the previous case:
 #+BEGIN_SRC emacs-lisp
 (nconc global-mode-string '((:eval (stack-notifications dnel-state))))
-(add-hook 'dnel-state-changed-hook (lambda () (force-mode-line-update t)))
+(add-hook 'dnel-state-changed-functions (lambda (&rest _)
+                                          (force-mode-line-update t)))
 #+END_SRC
 
-*** Use Case 3: Log All Notifications
-
-Instead of or in addition to one of the previous use cases, a log of past
-and present notifications can be kept by a function like this:
-#+NAME: log
-#+BEGIN_SRC emacs-lisp :tangle yes
-(defun update-notification-log (state)
-  (let ((copy (copy-sequence state))
-        (closed '(:strike-through t)))
-    (goto-char (point-min))
-    (while (not (eobp))
-      (unless (equal (get-text-property (point) 'face) closed)
-        (let* ((line (delete-and-extract-region (point) (line-end-position)))
-               (found (dnel-get-notification copy (string-to-number line) t)))
-          (insert (if found (dnel-format-notification state found)
-                    (propertize line 'face closed 'local-map ())))))
-      (forward-line))
-    (dolist (new (cdr copy))
-      (insert (dnel-format-notification state new) ?\n))))
-#+END_SRC
-
-Like before, this function is called on every change to the notifications:
-#+BEGIN_SRC emacs-lisp
-(add-hook 'dnel-state-changed-hook
-          (lambda () (with-current-buffer (get-buffer-create "*Notifications*")
-                       (save-excursion
-                         (update-notification-log dnel-state)))))
-#+END_SRC
-
-Active notifications have text properties as described above; closed or expired
-notifications only have the tooltip and are struck through.

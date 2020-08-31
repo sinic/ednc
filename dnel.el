@@ -40,6 +40,8 @@
 (define-minor-mode dnel-mode
   "Act as a Desktop Notifications server and track notifications."
   :global t :lighter " DNel"
+  (funcall (if dnel-mode #'add-hook #'remove-hook) 'dnel-state-changed-functions
+           (apply-partially #'dnel--update-log-buffer dnel-state))
   (funcall (if dnel-mode #'dnel--start-server #'dnel--stop-server) dnel-state))
 
 (defvar dnel-state (list 0)
@@ -68,7 +70,7 @@ REASON defaults to 3 (i.e., closed by call to CloseNotification)."
   (let* ((notification (dnel-get-notification state id t))
          (reason (or reason 3)))
     (if (not notification) (when (= reason 3) (signal 'dbus-error ()))
-      (run-hooks 'dnel-state-changed-hook)
+      (run-hook-with-args 'dnel-state-changed-functions notification t)
       (dnel--dbus-talk-to (plist-get (cdr notification) 'client)
                           'send-signal 'NotificationClosed id reason)))
   :ignore)
@@ -144,7 +146,7 @@ are the received values as described in the Desktop Notification standard."
     (push (list id 'app-name app-name 'summary summary 'body body 'client client
                 'timer timer 'actions actions 'image image 'hints hints)
           (cdr state))
-    (run-hooks 'dnel-state-changed-hook)
+    (run-hook-with-args 'dnel-state-changed-functions (cadr state))
     id))
 
 (defun dnel--get-image (hints app-icon)
@@ -236,6 +238,29 @@ SUFFIX is the non-constant suffix of a D-Bus function (e.g., `call-method'),
 SYMBOL is named after the function's first argument (e.g., `GetServerInfo'),
 REST contains the remaining arguments to that function."
   (apply #'dnel--dbus-talk-to dnel--service suffix symbol rest))
+
+(defun dnel--update-log-buffer (state notification &optional remove)
+  "Update log buffer to reflect status of NOTIFICATION in STATE."
+  (let* ((name "*dnel-log*")
+         (old-buffer (get-buffer name)))
+    (with-current-buffer (or old-buffer (generate-new-buffer name))
+      (save-excursion
+        (let ((inhibit-read-only t))
+          (if old-buffer (dnel--update-log state notification remove)
+            (special-mode)
+            (dolist (notification (reverse (cdr state)))
+              (plist-put (cdr notification) 'log-position (point))
+              (insert (dnel-format-notification state notification) ?\n))))))))
+
+(defun dnel--update-log (state notification &optional remove)
+  "Update current buffer to reflect status of NOTIFICATION in STATE."
+  (if (not remove)
+      (let ((pos (or (plist-get (cdr notification) 'log-position) (point-max))))
+        (plist-put (cdr notification) 'log-position (goto-char pos))
+        (insert (dnel-format-notification state notification) ?\n))
+    (goto-char (plist-get (cdr notification) 'log-position))
+    (let ((line (delete-and-extract-region (point) (line-end-position))))
+      (insert (propertize line 'face '(:strike-through t) 'local-map ())))))
 
 (provide 'dnel)
 ;;; dnel.el ends here
