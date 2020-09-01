@@ -27,8 +27,8 @@
 ;; are tracked in the global variable `dnel-state' whenever the global
 ;; minor mode `dnel-mode' is active.  Users are free to monitor the
 ;; contents of that variable as they see fit, though DNel does provide
-;; some additional convenience functions. By default, all notifications
-;; are logged to the buffer `*dnel-log*'.
+;; some additional convenience functions.  By default, past and present
+;; notifications are recorded in the buffer `*dnel-log*'.
 
 ;;; Code:
 (require 'dbus)
