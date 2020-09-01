@@ -33,6 +33,8 @@
 ;;; Code:
 (require 'dbus)
 
+(defconst dnel--log-name "*dnel-log*")
+
 (defconst dnel--path "/org/freedesktop/Notifications")
 (defconst dnel--service (subst-char-in-string ?/ ?. (substring dnel--path 1)))
 (defconst dnel--interface dnel--service)
@@ -240,18 +242,33 @@ SYMBOL is named after the function's first argument (e.g., `GetServerInfo'),
 REST contains the remaining arguments to that function."
   (apply #'dnel--dbus-talk-to dnel--service suffix symbol rest))
 
+(defmacro dnel--with-log-buffer (state &optional buffer &rest body)
+  "Execute BODY with log BUFFER or new one initialized with STATE."
+  (declare (indent 1))
+  `(with-current-buffer (or ,buffer (generate-new-buffer dnel--log-name))
+     (let ((inhibit-read-only t))
+       (unless ,buffer
+         (special-mode)
+         (save-excursion
+           (dolist (notification (reverse (cdr ,state)))
+             (plist-put (cdr notification) 'log-position (point))
+             (insert (dnel-format-notification ,state notification) ?\n))))
+       ,@body)))
+
 (defun dnel--update-log-buffer (state notification &optional remove)
   "Update log buffer to reflect status of NOTIFICATION in STATE."
-  (let* ((name "*dnel-log*")
-         (old-buffer (get-buffer name)))
-    (with-current-buffer (or old-buffer (generate-new-buffer name))
-      (save-excursion
-        (let ((inhibit-read-only t))
-          (if old-buffer (dnel--update-log state notification remove)
-            (special-mode)
-            (dolist (notification (reverse (cdr state)))
-              (plist-put (cdr notification) 'log-position (point))
-              (insert (dnel-format-notification state notification) ?\n))))))))
+  (let ((buffer (get-buffer dnel--log-name)))
+    (dnel--with-log-buffer state buffer
+      (if buffer (save-excursion
+                   (dnel--update-log state notification remove))))))
+
+(defun dnel--pop-to-log-buffer (state &optional notification)
+  "Pop to log buffer reflecting STATE and select NOTIFICATION."
+  (let ((buffer (get-buffer dnel--log-name))
+        (position (plist-get (cdr notification) 'log-position)))
+    (dnel--with-log-buffer state buffer
+      (pop-to-buffer (current-buffer))
+      (if position (goto-char position)))))
 
 (defun dnel--update-log (state notification &optional remove)
   "Update current buffer to reflect status of NOTIFICATION in STATE."
