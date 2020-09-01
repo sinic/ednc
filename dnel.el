@@ -78,17 +78,18 @@ REASON defaults to 3 (i.e., closed by call to CloseNotification)."
                           'send-signal 'NotificationClosed id reason)))
   :ignore)
 
-(defun dnel-format-notification (state notification)
+(defun dnel-format-notification (state notification &optional full)
   "Return propertized string describing a NOTIFICATION in STATE."
   (let* ((get (apply-partially #'plist-get (cdr notification)))
          (urgency (or (dnel--get-hint (funcall get 'hints) "urgency") 1))
          (inherit (if (<= urgency 0) 'shadow (if (>= urgency 2) 'bold))))
-    (format (propertize " %s[%s: %s]" 'face (list :inherit inherit))
+    (format (propertize " %s[%s: %s]%s" 'face (list :inherit inherit))
             (propertize (number-to-string (car notification)) 'invisible t
                         'display (funcall get 'image))
             (propertize (funcall get 'app-name))
             (apply #'dnel--format-summary state (car notification)
-                   (funcall get 'summary) (mapcar get '(body actions))))))
+                   (funcall get 'summary) (mapcar get '(body actions)))
+            (if full (concat "\n" (funcall get 'body) "\n") ""))))
 
 (defun dnel--format-summary (state id summary &optional body actions)
   "Propertize SUMMARY for notification identified by ID in STATE.
@@ -252,7 +253,7 @@ REST contains the remaining arguments to that function."
          (save-excursion
            (dolist (notification (reverse (cdr ,state)))
              (plist-put (cdr notification) 'log-position (point))
-             (insert (dnel-format-notification ,state notification) ?\n))))
+             (insert (dnel-format-notification ,state notification t) ?\n))))
        ,@body)))
 
 (defun dnel--update-log-buffer (state notification &optional remove)
@@ -279,7 +280,7 @@ REST contains the remaining arguments to that function."
         (insert (propertize line 'face '(:strike-through t) 'local-map ()))))
     (unless remove
       (plist-put (cdr notification) 'log-position (goto-char (point-max)))
-      (insert (dnel-format-notification state notification) ?\n))))
+      (insert (dnel-format-notification state notification t) ?\n))))
 
 (provide 'dnel)
 ;;; dnel.el ends here

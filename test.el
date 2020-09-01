@@ -168,6 +168,8 @@
     (with-temp-buffer
       (dnel--update-log state (cadr state))
       (should (string-equal (buffer-string) " 1[test: foo]
+bar baz
+
 ")))))
 
 (ert-deftest dnel--log-multiple-notifications-test ()
@@ -178,7 +180,11 @@
         (apply #'dnel--notify state (dnel--get-test-args '(app-name . "tes1")))
         (dnel--update-log state (cadr state))
         (should (string-equal (buffer-string) " 1[test: foo]
+bar baz
+
  2[tes1: foo]
+bar baz
+
 ")))))
 
 (ert-deftest dnel--log-closed-notifications-test ()
@@ -192,7 +198,11 @@
         (dnel-close-notification state id 3)
         (dnel--update-log state notification t)
         (should (string-equal (buffer-string) " 1[test: foo]
+bar baz
+
  2[tes1: foo]
+bar baz
+
 "))))))
 
 ;; Test dnel-invoke-action:
