@@ -87,23 +87,26 @@ REASON defaults to 3 (i.e., closed by call to CloseNotification)."
             (propertize (number-to-string (car notification)) 'invisible t
                         'display (funcall get 'image))
             (propertize (funcall get 'app-name))
-            (apply #'dnel--format-summary state (car notification)
-                   (funcall get 'summary) (mapcar get '(body actions)))
+            (dnel--format-summary
+             state (car notification) (funcall get 'summary)
+             (funcall get 'actions) full)
             (if full (concat "\n" (funcall get 'body) "\n") ""))))
 
-(defun dnel--format-summary (state id summary &optional body actions)
+(defun dnel--format-summary (state id summary &optional actions full)
   "Propertize SUMMARY for notification identified by ID in STATE.
 
-The optional BODY is shown as a tooltip, ACTIONS can be selected from a menu."
+ACTIONS can be selected from a menu."
   (let ((controls `((mouse-1 . ,(lambda () (interactive)
                                   (dnel-invoke-action state id)))
-                    (down-mouse-2 . ,(dnel--format-actions state id actions))
+                    ,(if full `(down-mouse-2 . ,(dnel--format-actions state id
+                                                                      actions))
+                       `(mouse-2 . ,(lambda () (interactive)
+                                      (dnel--pop-to-log-buffer state id))))
                     (mouse-3 . ,(lambda () (interactive)
                                   (dnel-close-notification state id 2))))))
-    (apply #'propertize summary 'mouse-face 'mode-line-highlight
-           'local-map `(keymap (header-line keymap . ,controls)
-                               (mode-line keymap . ,controls) . ,controls)
-           (when (and body (not (string-equal "" body))) `(help-echo ,body)))))
+    (propertize summary 'mouse-face 'mode-line-highlight 'local-map
+                `(keymap (header-line keymap . ,controls)
+                         (mode-line keymap . ,controls) . ,controls))))
 
 (defun dnel--format-actions (state id actions)
   "Propertize ACTIONS for notification identified by ID in STATE."
@@ -263,10 +266,11 @@ REST contains the remaining arguments to that function."
       (if buffer (save-excursion
                    (dnel--update-log state notification remove))))))
 
-(defun dnel--pop-to-log-buffer (state &optional notification)
-  "Pop to log buffer reflecting STATE and select NOTIFICATION."
+(defun dnel--pop-to-log-buffer (state &optional id)
+  "Pop to log buffer and to notification identified by ID in STATE."
   (let ((buffer (get-buffer dnel--log-name))
-        (position (plist-get (cdr notification) 'log-position)))
+        (position (plist-get (cdr (dnel-get-notification state id))
+                             'log-position)))
     (dnel--with-log-buffer state buffer
       (pop-to-buffer (current-buffer))
       (if position (goto-char position)))))

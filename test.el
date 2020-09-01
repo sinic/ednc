@@ -253,28 +253,8 @@ bar baz
   (dnel--with-temp-server state
     (let* ((id (apply #'dnel--notify state (dnel--get-test-args)))
            (plist (cdadr state))
-           (result (dnel--format-summary state id (plist-get plist 'summary)
-                                         (plist-get plist 'body))))
-      (should (string-equal result (plist-get plist 'summary)))
-      (should (string-equal (get-text-property 0 'help-echo result)
-                            (plist-get plist 'body))))))
-
-(ert-deftest dnel--format-summary-with-empty-body-test ()
-  (dnel--with-temp-server state
-    (let* ((id (apply #'dnel--notify state (dnel--get-test-args '(body . ""))))
-           (plist (cdadr state))
-           (result (dnel--format-summary state id (plist-get plist 'summary)
-                                         "")))
-      (should (string-equal result (plist-get plist 'summary)))
-      (should-not (get-text-property 0 'help-echo result)))))
-
-(ert-deftest dnel--format-summary-without-body-test ()
-  (dnel--with-temp-server state
-    (let* ((id (apply #'dnel--notify state (dnel--get-test-args '(body))))
-           (plist (cdadr state))
            (result (dnel--format-summary state id (plist-get plist 'summary))))
-      (should (string-equal result (plist-get plist 'summary)))
-      (should-not (get-text-property 0 'help-echo result)))))
+      (should (string-equal result (plist-get plist 'summary))))))
 
 ;; Test dnel--format-actions:
 (ert-deftest dnel--format-empty-actions-test ()
