@@ -255,13 +255,14 @@ REST contains the remaining arguments to that function."
 
 (defun dnel--update-log (state notification &optional remove)
   "Update current buffer to reflect status of NOTIFICATION in STATE."
-  (if (not remove)
-      (let ((pos (or (plist-get (cdr notification) 'log-position) (point-max))))
-        (plist-put (cdr notification) 'log-position (goto-char pos))
-        (insert (dnel-format-notification state notification) ?\n))
-    (goto-char (plist-get (cdr notification) 'log-position))
-    (let ((line (delete-and-extract-region (point) (line-end-position))))
-      (insert (propertize line 'face '(:strike-through t) 'local-map ())))))
+  (let ((position (plist-get (cdr notification) 'log-position)))
+    (when position
+      (goto-char position)
+      (let ((line (delete-and-extract-region (point) (line-end-position))))
+        (insert (propertize line 'face '(:strike-through t) 'local-map ()))))
+    (unless remove
+      (plist-put (cdr notification) 'log-position (goto-char (point-max)))
+      (insert (dnel-format-notification state notification) ?\n))))
 
 (provide 'dnel)
 ;;; dnel.el ends here
