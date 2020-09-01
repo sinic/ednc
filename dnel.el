@@ -269,8 +269,8 @@ REST contains the remaining arguments to that function."
 (defun dnel--pop-to-log-buffer (state &optional id)
   "Pop to log buffer and to notification identified by ID in STATE."
   (let ((buffer (get-buffer dnel--log-name))
-        (position (plist-get (cdr (dnel-get-notification state id))
-                             'log-position)))
+        (position (when id (plist-get (cdr (dnel-get-notification state id))
+                                      'log-position))))
     (dnel--with-log-buffer state buffer
       (pop-to-buffer (current-buffer))
       (if position (goto-char position)))))
