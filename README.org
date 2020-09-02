@@ -18,8 +18,8 @@ local copy of this repository.
 The package will hopefully end up on [[https://melpa.org][MELPA]] in due time.
 After installation, ensure that no other notification daemon is active, execute
 ~dnel-mode~, and make use of your session's currently active notifications in
-~dnel-state~ whenever the hook ~dnel-state-changed-hook~ runs (read on for some
-suggestions).
+~dnel-state~ whenever the (abnormal) hook ~dnel-state-changed-functions~ runs
+(read on for some suggestions).
 Enjoy!
 
 *** Use Case 1: Show Active Notifications
