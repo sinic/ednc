@@ -124,14 +124,14 @@
 (ert-deftest dnel--list-single-notification-test ()
   (dnel--with-temp-server state
     (apply #'dnel--notify state (dnel--get-test-args))
-    (should (string-equal (list-notifications state) " 1[test: foo]"))))
+    (should (string-equal (list-notifications state) "  [test: foo]"))))
 
 (ert-deftest dnel--list-multiple-notifications-test ()
   (dnel--with-temp-server state
     (apply #'dnel--notify state (dnel--get-test-args))
     (apply #'dnel--notify state (dnel--get-test-args '(app-name . "tes1")))
     (should (string-equal (list-notifications state)
-                          " 2[tes1: foo] 1[test: foo]"))))
+                          "  [tes1: foo]  [test: foo]"))))
 
 ;; Test use case 2:
 (ert-deftest dnel--stack-no-notifications-test ()
@@ -146,20 +146,20 @@
 (ert-deftest dnel--stack-for-single-notification-test ()
   (dnel--with-temp-server state
     (apply #'dnel--notify state (dnel--get-test-args))
-    (should (string-equal (stack-notifications state) " 1[test: foo]"))))
+    (should (string-equal (stack-notifications state) "  [test: foo]"))))
 
 (ert-deftest dnel--stack-non-stacking-notifications-test ()
   (dnel--with-temp-server state
     (apply #'dnel--notify state (dnel--get-test-args))
     (apply #'dnel--notify state (dnel--get-test-args '(app-name . "tes1")))
     (should (string-equal (stack-notifications state)
-                          " 2[tes1: foo] 1[test: foo]"))))
+                          "  [tes1: foo]  [test: foo]"))))
 
 (ert-deftest dnel--stack-stacking-notifications-test ()
   (dnel--with-temp-server state
     (apply #'dnel--notify state (dnel--get-test-args))
     (apply #'dnel--notify state (dnel--get-test-args '(summary . "bar")))
-    (should (string-equal (stack-notifications state) " 2[test: bar]"))))
+    (should (string-equal (stack-notifications state) "  [test: bar]"))))
 
 ;; Test logging:
 (ert-deftest dnel--log-single-notification-test ()
@@ -167,7 +167,7 @@
     (apply #'dnel--notify state (dnel--get-test-args))
     (with-temp-buffer
       (dnel--update-log state (cadr state))
-      (should (string-equal (buffer-string) " 1[test: foo]
+      (should (string-equal (buffer-string) "  [test: foo]
 bar baz
 
 ")))))
@@ -179,10 +179,10 @@ bar baz
         (dnel--update-log state (cadr state))
         (apply #'dnel--notify state (dnel--get-test-args '(app-name . "tes1")))
         (dnel--update-log state (cadr state))
-        (should (string-equal (buffer-string) " 1[test: foo]
+        (should (string-equal (buffer-string) "  [test: foo]
 bar baz
 
- 2[tes1: foo]
+  [tes1: foo]
 bar baz
 
 ")))))
@@ -197,10 +197,10 @@ bar baz
         (dnel--update-log state (cadr state))
         (dnel-close-notification state id 3)
         (dnel--update-log state notification t)
-        (should (string-equal (buffer-string) " 1[test: foo]
+        (should (string-equal (buffer-string) "  [test: foo]
 bar baz
 
- 2[tes1: foo]
+  [tes1: foo]
 bar baz
 
 "))))))
@@ -246,7 +246,7 @@ bar baz
   (dnel--with-temp-server state
     (apply #'dnel--notify state (dnel--get-test-args))
     (should (string-equal (dnel-format-notification state (cadr state))
-                          " 1[test: foo]"))))
+                          "  [test: foo]"))))
 
 ;; Test dnel--format-summary:
 (ert-deftest dnel--format-summary-test ()

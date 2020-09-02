@@ -84,8 +84,7 @@ REASON defaults to 3 (i.e., closed by call to CloseNotification)."
          (urgency (or (dnel--get-hint (funcall get 'hints) "urgency") 1))
          (inherit (if (<= urgency 0) 'shadow (if (>= urgency 2) 'bold))))
     (format (propertize " %s[%s: %s]%s" 'face (list :inherit inherit))
-            (propertize (number-to-string (car notification)) 'invisible t
-                        'display (funcall get 'image))
+            (propertize " " 'display (funcall get 'image))
             (propertize (funcall get 'app-name))
             (dnel--format-summary
              state (car notification) (funcall get 'summary)
