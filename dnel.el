@@ -56,7 +56,7 @@
   "The minor mode tracks all active desktop notifications here.
 
 This is an opaque object that should only be used as an argument to
-other functions in this package. It is currently implemented as a cons
+other functions in this package.  It is currently implemented as a cons
 cell: its car is the count of distinct IDs assigned so far, its cdr is
 a list of currently active notifications, newest first.")
 
