@@ -29,7 +29,8 @@ defining a function that returns the notifications as a string:
 #+NAME: list
 #+BEGIN_SRC emacs-lisp :tangle yes
 (defun list-notifications (state)
-  (mapconcat (apply-partially #'dnel-format-notification state) (cdr state) ""))
+  (mapconcat (apply-partially #'dnel-format-notification state)
+             (dnel-notifications state) ""))
 #+END_SRC
 
 The function is called from the mode line for every change to the notifications:
@@ -57,7 +58,7 @@ notification per application by defining an appropriate function:
                  (if (member app-name hide) ""
                    (push app-name hide)
                    (dnel-format-notification state notification))))
-             (cdr state) ""))
+             (dnel-notifications state) ""))
 #+END_SRC
 
 It is called exactly the same as the function in the previous case:
