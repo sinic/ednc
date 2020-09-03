@@ -55,8 +55,13 @@
 (defvar dnel-state (list 0)
   "The minor mode tracks all active desktop notifications here.
 
-This cons cell's car is the count of distinct IDs assigned so far,
-its cdr is a list of currently active notifications, newest first.")
+This is an opaque object that should only be used as an argument to
+other functions in this package. It is currently implemented as a cons
+cell: its car is the count of distinct IDs assigned so far, its cdr is
+a list of currently active notifications, newest first.")
+
+(defalias 'dnel-notifications 'cdr "Access notifications of dnel-state.")
+(put 'dnel-notifications 'byte-optimizer 'byte-compile-inline-expand)
 
 (defun dnel-invoke-action (state id &optional action)
   "Invoke ACTION of the notification identified by ID in STATE.
