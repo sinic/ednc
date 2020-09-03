@@ -67,7 +67,7 @@ a list of currently active notifications, newest first.")
   "Invoke ACTION of the notification identified by ID in STATE.
 
 ACTION defaults to the key \"default\"."
-  (let ((notification (dnel-get-notification state id)))
+  (let ((notification (dnel--get-notification state id)))
     (when notification
       (dnel--dbus-talk-to (dnel-notification-client notification)
                           'send-signal 'ActionInvoked id
@@ -77,7 +77,7 @@ ACTION defaults to the key \"default\"."
   "Close the notification identified by ID in STATE for REASON.
 
 REASON defaults to 3 (i.e., closed by call to CloseNotification)."
-  (let* ((notification (dnel-get-notification state id t))
+  (let* ((notification (dnel--get-notification state id t))
          (reason (or reason 3)))
     (if (not notification) (when (= reason 3) (signal 'dbus-error ()))
       (run-hook-with-args 'dnel-state-changed-functions notification t)
@@ -149,8 +149,8 @@ ACTIONS can be selected from a menu."
 APP-NAME, REPLACES-ID, APP-ICON, SUMMARY, BODY, ACTIONS, HINTS, EXPIRE-TIMEOUT
 are the received values as described in the Desktop Notification standard."
   (let* ((id (or (unless (zerop replaces-id)
-                   (dnel-notification-id (dnel-get-notification state
-                                                                replaces-id t)))
+                   (dnel-notification-id
+                    (dnel--get-notification state replaces-id t)))
                  (setcar state (1+ (car state)))))
          (timer (when (> expire-timeout 0)
                   (run-at-time (/ expire-timeout 1000.0) nil
@@ -218,7 +218,7 @@ This function is destructive."
         (setcdr (setq cell (funcall keep cell)) (funcall delete cell))))))
 
 ;; Timers call this function, so keep an eye on complexity:
-(defun dnel-get-notification (state id &optional remove)
+(defun dnel--get-notification (state id &optional remove)
   "Return from STATE the notification identified by ID.
 
 The returned notification is deleted from STATE if REMOVE is non-nil."
@@ -273,7 +273,7 @@ REST contains the remaining arguments to that function."
   "Pop to log buffer and to notification identified by ID in STATE."
   (let ((buffer (get-buffer dnel--log-name))
         (position (when id (dnel-notification-log-position
-                            (dnel-get-notification state id)))))
+                            (dnel--get-notification state id)))))
     (dnel--with-log-buffer state buffer
       (pop-to-buffer (current-buffer))
       (if position (goto-char position)))))
