@@ -69,10 +69,10 @@ a list of currently active notifications, newest first.")
 
 ACTION defaults to the key \"default\"."
   (let ((notification (dnel--get-notification state id)))
-    (when notification
-      (dnel--dbus-talk-to (dnel-notification-client notification)
-                          'send-signal 'ActionInvoked id
-                          (or action "default")))))
+    (if notification
+        (dnel--dbus-talk-to (dnel-notification-client notification)
+                            'send-signal 'ActionInvoked id
+                            (or action "default")))))
 
 (defun dnel-close-notification (state id &optional reason)
   "Close the notification identified by ID in STATE for REASON.
@@ -80,7 +80,7 @@ ACTION defaults to the key \"default\"."
 REASON defaults to 3 (i.e., closed by call to CloseNotification)."
   (let* ((notification (dnel--get-notification state id t))
          (reason (or reason 3)))
-    (if (not notification) (when (= reason 3) (signal 'dbus-error ()))
+    (if (not notification) (if (= reason 3) (signal 'dbus-error ()))
       (run-hook-with-args 'dnel-state-changed-functions notification t)
       (dnel--dbus-talk-to (dnel-notification-client notification)
                           'send-signal 'NotificationClosed id reason)))
@@ -154,9 +154,9 @@ are the received values as described in the Desktop Notification standard."
                    (dnel-notification-id
                     (dnel--get-notification state replaces-id t)))
                  (setcar state (1+ (car state)))))
-         (timer (when (> expire-timeout 0)
-                  (run-at-time (/ expire-timeout 1000.0) nil
-                               #'dnel-close-notification state id 1))))
+         (timer (if (> expire-timeout 0)
+                    (run-at-time (/ expire-timeout 1000.0) nil
+                                 #'dnel-close-notification state id 1))))
     (push (dnel--notification-create
            :id id :app-name app-name :summary summary :body body :actions actions
            :image (dnel--get-image hints app-icon) :hints hints :timer timer
@@ -173,8 +173,8 @@ This function is destructive."
                    (dnel--path-to-image (dnel--get-hint hints "image-path" t))
                    (dnel--path-to-image app-icon)
                    (dnel--data-to-image (dnel--get-hint hints "icon_data" t)))))
-    (when image (setf (image-property image :max-height) (line-pixel-height)
-                      (image-property image :ascent) 90))
+    (if image (setf (image-property image :max-height) (line-pixel-height)
+                    (image-property image :ascent) 90))
     image))
 
 (defun dnel--get-hint (hints key &optional remove)
@@ -183,41 +183,41 @@ This function is destructive."
 The returned value is removed from HINTS if REMOVE is non-nil."
   (let* ((pair (assoc key hints))
          (tail (cdr pair)))
-    (when (and remove pair) (setcdr pair nil))
+    (if (and remove pair) (setcdr pair nil))
     (caar tail)))
 
 (defun dnel--path-to-image (image-path)
   "Return image descriptor created from file URI IMAGE-PATH."
   (let ((prefix "file://"))
-    (when (and (stringp image-path) (> (length image-path) (length prefix))
-               (string-equal (substring image-path 0 (length prefix)) prefix))
-      (create-image (substring image-path (length prefix))))))
+    (if (and (stringp image-path) (> (length image-path) (length prefix))
+             (string-equal (substring image-path 0 (length prefix)) prefix))
+        (create-image (substring image-path (length prefix))))))
 
 (defun dnel--data-to-image (image-data)
   "Return image descriptor created from raw (iiibiiay) IMAGE-DATA.
 
 This function is destructive."
-  (when image-data
-    (cl-destructuring-bind (width height row-stride _ bit-depth channels data)
-        image-data
-      (when (and (= bit-depth 8) (<= 3 channels 4))
-        (dnel--delete-padding data (* channels width) row-stride)
-        (dnel--delete-padding data 3 channels)
-        (let ((header (format "P6\n%d %d\n255\n" width height)))
-          (create-image (apply #'unibyte-string (append header data))
-                        'pbm t))))))
+  (if image-data
+      (cl-destructuring-bind (width height row-stride _ bit-depth channels data)
+          image-data
+        (when (and (= bit-depth 8) (<= 3 channels 4))
+          (dnel--delete-padding data (* channels width) row-stride)
+          (dnel--delete-padding data 3 channels)
+          (let ((header (format "P6\n%d %d\n255\n" width height)))
+            (create-image (apply #'unibyte-string (append header data))
+                          'pbm t))))))
 
 (defun dnel--delete-padding (list payload total)
   "Delete LIST elements between multiples of PAYLOAD and TOTAL.
 
 This function is destructive."
-  (when (< payload total)
-    (let ((cell (cons nil list))
-          (delete (if (and (= payload 3) (= total 4)) #'cddr  ; fast opcode
-                    (apply-partially #'nthcdr (- total payload -1))))
-          (keep (if (= payload 3) #'cdddr (apply-partially #'nthcdr payload))))
-      (while (cdr cell)
-        (setcdr (setq cell (funcall keep cell)) (funcall delete cell))))))
+  (if (< payload total)
+      (let ((cell (cons nil list))
+            (delete (if (and (= payload 3) (= total 4)) #'cddr  ; fast opcode
+                      (apply-partially #'nthcdr (- total payload -1))))
+            (keep (if (= payload 3) #'cdddr (apply-partially #'nthcdr payload))))
+        (while (cdr cell)
+          (setcdr (setq cell (funcall keep cell)) (funcall delete cell))))))
 
 ;; Timers call this function, so keep an eye on complexity:
 (defun dnel--get-notification (state id &optional remove)
@@ -274,8 +274,8 @@ REST contains the remaining arguments to that function."
 (defun dnel--pop-to-log-buffer (state &optional id)
   "Pop to log buffer and to notification identified by ID in STATE."
   (let ((buffer (get-buffer dnel--log-name))
-        (position (when id (dnel-notification-log-position
-                            (dnel--get-notification state id)))))
+        (position (if id (dnel-notification-log-position
+                          (dnel--get-notification state id)))))
     (dnel--with-log-buffer state buffer
       (pop-to-buffer (current-buffer))
       (if position (goto-char position)))))
