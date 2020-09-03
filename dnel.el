@@ -191,16 +191,12 @@ The returned value is removed from HINTS if REMOVE is non-nil."
 
 This function is destructive."
   (when image-data
-    (let* ((size (cons (pop image-data) (pop image-data)))
-           (row-stride (pop image-data))
-           (_has-alpha (pop image-data))
-           (bits-per-sample (pop image-data))
-           (channels (pop image-data))
-           (data (pop image-data)))
-      (when (and (= bits-per-sample 8) (<= 3 channels 4))
-        (dnel--delete-padding data (* channels (car size)) row-stride)
+    (cl-destructuring-bind (width height row-stride _ bit-depth channels data)
+        image-data
+      (when (and (= bit-depth 8) (<= 3 channels 4))
+        (dnel--delete-padding data (* channels width) row-stride)
         (dnel--delete-padding data 3 channels)
-        (let ((header (format "P6\n%d %d\n255\n" (car size) (cdr size))))
+        (let ((header (format "P6\n%d %d\n255\n" width height)))
           (create-image (apply #'unibyte-string (append header data))
                         'pbm t))))))
 
