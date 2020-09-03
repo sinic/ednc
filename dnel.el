@@ -87,16 +87,17 @@ REASON defaults to 3 (i.e., closed by call to CloseNotification)."
 
 (defun dnel-format-notification (state notification &optional full)
   "Return propertized string describing a NOTIFICATION in STATE."
-  (let* ((get (lambda (slot) (cl-struct-slot-value 'dnel-notification
-                                                   slot notification)))
-         (urgency (or (dnel--get-hint (funcall get 'hints) "urgency") 1))
+  (let* ((hints (dnel-notification-hints notification))
+         (urgency (or (dnel--get-hint hints "urgency") 1))
          (inherit (if (<= urgency 0) 'shadow (if (>= urgency 2) 'bold))))
     (format (propertize " %s[%s: %s]%s" 'face (list :inherit inherit))
-            (propertize " " 'display (funcall get 'image))
-            (funcall get 'app-name)
-            (dnel--format-summary state (funcall get 'id) (funcall get 'summary)
-                                  (funcall get 'actions) full)
-            (if full (concat "\n" (funcall get 'body) "\n") ""))))
+            (propertize " " 'display (dnel-notification-image notification))
+            (dnel-notification-app-name notification)
+            (dnel--format-summary state (dnel-notification-id notification)
+                                  (dnel-notification-summary notification)
+                                  (dnel-notification-actions notification) full)
+            (if full (concat "\n" (dnel-notification-body notification) "\n")
+              ""))))
 
 (defun dnel--format-summary (state id summary &optional actions full)
   "Propertize SUMMARY for notification identified by ID in STATE.
