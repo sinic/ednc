@@ -40,22 +40,24 @@
             (mapcar #'car dnel--default-test-alist))))
 
 (defun dnel--test-args-match (state id args)
-  (let ((notification (dnel-get-notification state id)))
+  (let ((found (dnel-get-notification state id)))
     (dolist (property (mapcar #'car dnel--default-test-alist))
-      (let ((arg (car args))
-            (plist (cdr notification)))
-        (cond ((eq property 'replaces-id)
-               (if (zerop arg) (should-not (zerop (car notification)))
-                 (should (= arg (car notification)))))
+      (let ((arg (car args)))
+        (cond ((eq property 'app-icon))
+              ((eq property 'replaces-id)
+               (if (zerop arg) (should-not (zerop (dnel-notification-id found)))
+                 (should (= arg (dnel-notification-id found)))))
               ((eq property 'expire-timeout)
-               (if (zerop arg) (should-not (plist-get plist 'timer))
-                 (should (timerp (plist-get plist 'timer)))))
-              (t (should (equal arg (plist-get plist property)))))
+               (if (zerop arg)
+                   (should-not (dnel-notification-timer found))
+                 (should (timerp (dnel-notification-timer found)))))
+              (t (should (equal arg (cl-struct-slot-value 'dnel-notification
+                                                          property found)))))
         (setq args (cdr args))))))
 
 (defun dnel--test-notifications-consistency (notifications)
   (let ((distinct (car notifications))
-        (ids (mapcar #'car (cdr notifications))))
+        (ids (mapcar #'dnel-notification-id (cdr notifications))))
     (should (and (integerp distinct) (>= distinct 0)))  ; non-negative integer,
     (should (<= (if ids (apply #'max ids) 0) distinct))  ; bounded from above,
     (should (= (length ids) (length (delete-dups ids)))))  ; without duplicates,
@@ -63,10 +65,10 @@
     (dnel--test-notification-consistency notification)))
 
 (defun dnel--test-notification-consistency (notification)
-  (let ((id (car notification)))
-    (should (and (integerp id) (> id 0)))  ; positive integer and
-    (dolist (required '(app-name summary))  ; plist with required properties?
-      (should (stringp (plist-get (cdr notification) required))))))
+  (let ((id (dnel-notification-id notification)))
+    (should (and (integerp id) (> id 0)))  ; with positive integer and with
+    (should (stringp (dnel-notification-summary notification)))  ; required
+    (should (stringp (dnel-notification-app-name notification)))))  ; slots?
 
 ;; Test helpers for testing:
 (ert-deftest dnel--with-temporary-server-test ()
@@ -104,14 +106,18 @@
       (should-error (ert-test-passed-p (ert-run-test test))))))
 
 (ert-deftest dnel--test-consistency-of-consistent-notifications-test ()
-  (dolist (arg '((0) (42) (23 (5 app-name "test" summary "foo"))))
+  (dolist (arg `((0) (42) (23 ,(dnel--notification-create
+                                :id 5 :app-name "test" :summary "foo"))))
     (let ((test (make-ert-test
                  :body (lambda () (dnel--test-notifications-consistency arg)))))
       (should (ert-test-passed-p (ert-run-test test))))))
 
 (ert-deftest dnel--test-consistency-of-inconsistent-notifications-test ()
-  (dolist (arg '(() (5 (23 app-name "test" summary "foo"))
-                 ((5 app-name "test" summary "foo")) (23 (5 app-name "test"))))
+  (dolist (arg `(() (5 (23 ,(dnel--notification-create
+                             :app-name "test" :summary "foo")))
+                 (,(dnel--notification-create
+                    :id 5 :app-name "test" :summary "foo"))
+                 (23 ,(dnel--notification-create :id 5 :app-name "test"))))
     (let ((test (make-ert-test
                  :body (lambda () (dnel--test-notifications-consistency arg)))))
       (should (ert-test-failed-p (ert-run-test test))))))
@@ -252,30 +258,34 @@ bar baz
 (ert-deftest dnel--format-summary-test ()
   (dnel--with-temp-server state
     (let* ((id (apply #'dnel--notify state (dnel--get-test-args)))
-           (plist (cdadr state))
-           (result (dnel--format-summary state id (plist-get plist 'summary))))
-      (should (string-equal result (plist-get plist 'summary))))))
+           (new (cadr state))
+           (result (dnel--format-summary state id
+                                         (dnel-notification-summary new))))
+      (should (string-equal result (dnel-notification-summary new))))))
 
 ;; Test dnel--format-actions:
 (ert-deftest dnel--format-empty-actions-test ()
   (dnel--with-temp-server state
     (let* ((id (apply #'dnel--notify state (dnel--get-test-args '(actions))))
-           (plist (cdadr state))
-           (result (dnel--format-actions state id (plist-get plist 'actions))))
+           (new (cadr state))
+           (result (dnel--format-actions state id
+                                         (dnel-notification-actions new))))
       (should (eq (car result) 'keymap))
       (should (string-equal (cadr result) "Actions")))))
 
 (ert-deftest dnel--format-actions-test ()
   (dnel--with-temp-server state
     (let* ((id (apply #'dnel--notify state (dnel--get-test-args)))
-           (plist (cdadr state))
-           (result (dnel--format-actions state id (plist-get plist 'actions))))
+           (new (cadr state))
+           (result (dnel--format-actions state id
+                                         (dnel-notification-actions new))))
       (should (eq (car result) 'keymap))
       (dotimes (i 2)
         (let ((entry (cadr result)))
           (should (and (= (car entry) i) (eq (cadr entry) 'menu-item)))
-          (should (string-equal (caddr entry) (nth (1+ (* i 2))  ; odd elements
-                                                   (plist-get plist 'actions))))
+          (should (string-equal (caddr entry)
+                                (nth (1+ (* i 2))  ; odd elements
+                                     (dnel-notification-actions new))))
           (should (functionp (cadddr entry))))
         (setq result (cdr result)))
       (should (string-equal (cadr result) "Actions")))))
@@ -421,17 +431,21 @@ bar baz
     (apply #'dnel--notify state (dnel--get-test-args))
     (let* ((older (apply #'dnel--notify state (dnel--get-test-args)))
            (newest (apply #'dnel--notify state (dnel--get-test-args))))
-      (should (= older (car (dnel-get-notification state older))))
-      (should (= newest (car (dnel-get-notification state newest)))))))
+      (should (= older (dnel-notification-id
+                        (dnel-get-notification state older))))
+      (should (= newest (dnel-notification-id
+                         (dnel-get-notification state newest)))))))
 
 (ert-deftest dnel--get-and-remove-notification-test ()
   (dnel--with-temp-server state
     (apply #'dnel--notify state (dnel--get-test-args))
     (let* ((older (apply #'dnel--notify state (dnel--get-test-args)))
            (newest (apply #'dnel--notify state (dnel--get-test-args))))
-      (should (= older (car (dnel-get-notification state older t))))
+      (should (= older (dnel-notification-id
+                        (dnel-get-notification state older t))))
       (should-not (dnel-get-notification state older))  ; older gone, and
-      (should (= newest (car (dnel-get-notification state newest t))))
+      (should (= newest (dnel-notification-id
+                         (dnel-get-notification state newest t))))
       (should-not (dnel-get-notification state newest)))))  ; newest gone?
 
 (ert-deftest dnel--get-or-remove-nonexistent-notification-test ()

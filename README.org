@@ -53,7 +53,7 @@ notification per application by defining an appropriate function:
 #+BEGIN_SRC emacs-lisp :tangle yes
 (defun stack-notifications (state &optional hide)
   (mapconcat (lambda (notification)
-               (let ((app-name (plist-get (cdr notification) 'app-name)))
+               (let ((app-name (dnel-notification-app-name notification)))
                  (if (member app-name hide) ""
                    (push app-name hide)
                    (dnel-format-notification state notification))))
