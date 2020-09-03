@@ -20,14 +20,14 @@
 (load-file (car (org-babel-tangle-file "README.org")))
 
 ;; Helpers for testing:
-(defmacro dnel--with-temp-server (notifications &rest body)
+(defmacro dnel--with-temp-server (state &rest body)
   (declare (indent 1))
-  `(let ((,notifications (list 0)))
+  `(let ((,state (list 0)))
      (skip-unless (not dnel-mode))  ; conflicting servers?
-     (dnel--start-server ,notifications)
+     (dnel--start-server ,state)
      ,@body
-     (dnel--test-notifications-consistency ,notifications)
-     (dnel--stop-server ,notifications)))
+     (dnel--test-state-consistency ,state)
+     (dnel--stop-server ,state)))
 
 (defconst dnel--default-test-alist
   '((app-name . "test") (replaces-id . 0) (app-icon) (summary . "foo")
@@ -55,13 +55,13 @@
                                                           property found)))))
         (setq args (cdr args))))))
 
-(defun dnel--test-notifications-consistency (notifications)
-  (let ((distinct (car notifications))
-        (ids (mapcar #'dnel-notification-id (cdr notifications))))
+(defun dnel--test-state-consistency (state)
+  (let ((distinct (car state))
+        (ids (mapcar #'dnel-notification-id (cdr state))))
     (should (and (integerp distinct) (>= distinct 0)))  ; non-negative integer,
     (should (<= (if ids (apply #'max ids) 0) distinct))  ; bounded from above,
     (should (= (length ids) (length (delete-dups ids)))))  ; without duplicates,
-  (dolist (notification (cdr notifications))  ; and with consistent elements?
+  (dolist (notification (cdr state))  ; and with consistent elements?
     (dnel--test-notification-consistency notification)))
 
 (defun dnel--test-notification-consistency (notification)
@@ -105,21 +105,21 @@
                   :body (lambda () (dnel--test-args-match state id args)))))
       (should-error (ert-test-passed-p (ert-run-test test))))))
 
-(ert-deftest dnel--test-consistency-of-consistent-notifications-test ()
+(ert-deftest dnel--test-consistency-of-consistent-state-test ()
   (dolist (arg `((0) (42) (23 ,(dnel--notification-create
                                 :id 5 :app-name "test" :summary "foo"))))
     (let ((test (make-ert-test
-                 :body (lambda () (dnel--test-notifications-consistency arg)))))
+                 :body (lambda () (dnel--test-state-consistency arg)))))
       (should (ert-test-passed-p (ert-run-test test))))))
 
-(ert-deftest dnel--test-consistency-of-inconsistent-notifications-test ()
+(ert-deftest dnel--test-consistency-of-inconsistent-state-test ()
   (dolist (arg `(() (5 (23 ,(dnel--notification-create
                              :app-name "test" :summary "foo")))
                  (,(dnel--notification-create
                     :id 5 :app-name "test" :summary "foo"))
                  (23 ,(dnel--notification-create :id 5 :app-name "test"))))
     (let ((test (make-ert-test
-                 :body (lambda () (dnel--test-notifications-consistency arg)))))
+                 :body (lambda () (dnel--test-state-consistency arg)))))
       (should (ert-test-failed-p (ert-run-test test))))))
 
 ;; Test use case 1:
