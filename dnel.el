@@ -60,7 +60,8 @@ other functions in this package.  It is currently implemented as a cons
 cell: its car is the count of distinct IDs assigned so far, its cdr is
 a list of currently active notifications, newest first.")
 
-(defalias 'dnel-notifications 'cdr "Access notifications of dnel-state.")
+(defalias 'dnel-notifications 'cdr
+  "Return notifications of state ARG1.")
 (put 'dnel-notifications 'byte-optimizer 'byte-compile-inline-expand)
 
 (defun dnel-invoke-action (state id &optional action)
