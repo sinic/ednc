@@ -43,7 +43,7 @@
 (cl-defstruct (dnel-notification (:constructor dnel--notification-create)
                                  (:copier nil))
   id app-name summary body actions image hints timer client
-  log-position remove-from)
+  log-position pop-suffix)
 
 ;;;###autoload
 (define-minor-mode dnel-mode
@@ -77,7 +77,7 @@ ACTION defaults to the key \"default\"."
   "Close the NOTIFICATION for REASON.
 
 REASON defaults to 3 (i.e., closed by call to CloseNotification)."
-  (dnel--pop-notification (dnel-notification-remove-from notification))
+  (dnel--pop-notification (dnel-notification-pop-suffix notification))
   (run-hook-with-args 'dnel-state-changed-functions notification t)
   (dnel--dbus-talk-to (dnel-notification-client notification) 'send-signal
                       'NotificationClosed (dnel-notification-id notification)
@@ -163,7 +163,7 @@ are the received values as described in the Desktop Notification standard."
                 (dnel-notification-id
                  (dnel--get-notification state replaces-id t)))
               (setcar state (1+ (car state))))
-          (dnel-notification-remove-from new) state)
+          (dnel-notification-pop-suffix new) state)
     (if (> expire-timeout 0)
         (setf (dnel-notification-timer new)
               (run-at-time (/ expire-timeout 1000.0) nil
@@ -240,14 +240,14 @@ The returned notification is deleted from STATE if REMOVE is non-nil."
   "Push NOTIFICATION to an arbitrary SUFFIX of state."
   (let ((old-top (cadr suffix)))
     (push notification (cdr suffix))
-    (if old-top (setf (dnel-notification-remove-from old-top) (cdr suffix)))))
+    (if old-top (setf (dnel-notification-pop-suffix old-top) (cdr suffix)))))
 
 (defun dnel--pop-notification (suffix)
   "Pop and return notification from an arbitrary SUFFIX of state."
   (let ((timer (if (cdr suffix) (dnel-notification-timer (cadr suffix)))))
     (if timer (cancel-timer timer)))
   (let ((new-top (caddr suffix)))
-    (if new-top (setf (dnel-notification-remove-from new-top) suffix)))
+    (if new-top (setf (dnel-notification-pop-suffix new-top) suffix)))
   (pop (cdr suffix)))
 
 (defun dnel--dbus-talk-to (service suffix symbol &rest rest)
