@@ -150,20 +150,23 @@ ACTIONS can be selected from a menu."
 
 APP-NAME, REPLACES-ID, APP-ICON, SUMMARY, BODY, ACTIONS, HINTS, EXPIRE-TIMEOUT
 are the received values as described in the Desktop Notification standard."
-  (let* ((id (or (unless (zerop replaces-id)
-                   (dnel-notification-id
-                    (dnel--get-notification state replaces-id t)))
-                 (setcar state (1+ (car state)))))
-         (timer (if (> expire-timeout 0)
-                    (run-at-time (/ expire-timeout 1000.0) nil
-                                 #'dnel-close-notification state id 1))))
-    (push (dnel--notification-create
-           :id id :app-name app-name :summary summary :body body :actions actions
-           :image (dnel--get-image hints app-icon) :hints hints :timer timer
-           :client (dbus-event-service-name last-input-event))
-          (cdr state))
-    (run-hook-with-args 'dnel-state-changed-functions (cadr state))
-    id))
+  (let ((new (dnel--notification-create
+              :app-name app-name :summary summary :body body :actions actions
+              :image (dnel--get-image hints app-icon) :hints hints
+              :client (dbus-event-service-name last-input-event))))
+    (setf (dnel-notification-id new)
+          (or (unless (zerop replaces-id)
+                (dnel-notification-id
+                 (dnel--get-notification state replaces-id t)))
+              (setcar state (1+ (car state)))))
+    (if (> expire-timeout 0)
+        (setf (dnel-notification-timer new)
+              (run-at-time (/ expire-timeout 1000.0) nil
+                           #'dnel-close-notification state
+                           (dnel-notification-id new) 1)))
+    (push new (cdr state))
+    (run-hook-with-args 'dnel-state-changed-functions new)
+    (dnel-notification-id new)))
 
 (defun dnel--get-image (hints app-icon)
   "Return image descriptor created from HINTS or from APP-ICON.
