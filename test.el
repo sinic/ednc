@@ -201,7 +201,7 @@ bar baz
         (dnel--update-log state notification)
         (apply #'dnel--notify state (dnel--get-test-args '(app-name . "tes1")))
         (dnel--update-log state (cadr state))
-        (dnel-close-notification state id 3)
+        (dnel-close-notification (cadr state) state 3)
         (dnel--update-log state notification t)
         (should (string-equal (buffer-string) "  [test: foo]
 bar baz
@@ -212,40 +212,22 @@ bar baz
 "))))))
 
 ;; Test dnel-invoke-action:
-(ert-deftest dnel--invoke-action-on-nonexistent-notification-test ()
-  (dnel--with-temp-server state
-    (let ((unused (1+ (apply #'dnel--notify state (dnel--get-test-args)))))
-      (dnel-invoke-action state unused))))  ; no real test yet
-
 (ert-deftest dnel--invoke-default-action-test ()
   (dnel--with-temp-server state
-    (let ((id (apply #'dnel--notify state (dnel--get-test-args))))
-      (dnel-invoke-action state id))))  ; no real test yet
+    (apply #'dnel--notify state (dnel--get-test-args))
+    (dnel-invoke-action (cadr state))))  ; no real test yet
 
 (ert-deftest dnel--invoke-alternative-action-test ()
   (dnel--with-temp-server state
-    (let ((id (apply #'dnel--notify state (dnel--get-test-args))))
-      (dnel-invoke-action state id "other"))))  ; no real test yet
+    (apply #'dnel--notify state (dnel--get-test-args))
+    (dnel-invoke-action (cadr state) "other")))  ; no real test yet
 
 ;; Test dnel-close-notification:
 (ert-deftest dnel--close-notification-test ()
   (dnel--with-temp-server state
     (let ((id (apply #'dnel--notify state (dnel--get-test-args))))
-      (should (eq (dnel-close-notification state id 3) :ignore))
+      (dnel-close-notification (cadr state) state 3)
       (should-not (dnel--get-notification state id)))))  ; gone?
-
-(ert-deftest dnel--close-previously-closed-notification-test ()
-  (dnel--with-temp-server state
-    (let ((id (apply #'dnel--notify state (dnel--get-test-args))))
-      (dnel-close-notification state id)
-      (should (eq (dnel-close-notification state id 2) :ignore))
-      (should-error (dnel-close-notification state id)))))  ; if by handler
-
-(ert-deftest dnel--close-nonexistent-notification-test ()
-  (dnel--with-temp-server state
-    (let ((unused (1+ (apply #'dnel--notify state (dnel--get-test-args)))))
-      (should (eq (dnel-close-notification state unused 2) :ignore))
-      (should-error (dnel-close-notification state unused)))))  ; if by handler
 
 ;; Test dnel--format-notification:
 (ert-deftest dnel--format-notification-test ()
@@ -257,27 +239,27 @@ bar baz
 ;; Test dnel--format-summary:
 (ert-deftest dnel--format-summary-test ()
   (dnel--with-temp-server state
-    (let* ((id (apply #'dnel--notify state (dnel--get-test-args)))
-           (new (cadr state))
-           (result (dnel--format-summary state id
+    (apply #'dnel--notify state (dnel--get-test-args))
+    (let* ((new (cadr state))
+           (result (dnel--format-summary state new
                                          (dnel-notification-summary new))))
       (should (string-equal result (dnel-notification-summary new))))))
 
 ;; Test dnel--format-actions:
 (ert-deftest dnel--format-empty-actions-test ()
   (dnel--with-temp-server state
-    (let* ((id (apply #'dnel--notify state (dnel--get-test-args '(actions))))
-           (new (cadr state))
-           (result (dnel--format-actions state id
+    (apply #'dnel--notify state (dnel--get-test-args '(actions)))
+    (let* ((new (cadr state))
+           (result (dnel--format-actions state new
                                          (dnel-notification-actions new))))
       (should (eq (car result) 'keymap))
       (should (string-equal (cadr result) "Actions")))))
 
 (ert-deftest dnel--format-actions-test ()
   (dnel--with-temp-server state
-    (let* ((id (apply #'dnel--notify state (dnel--get-test-args)))
-           (new (cadr state))
-           (result (dnel--format-actions state id
+    (apply #'dnel--notify state (dnel--get-test-args))
+    (let* ((new (cadr state))
+           (result (dnel--format-actions state new
                                          (dnel-notification-actions new))))
       (should (eq (car result) 'keymap))
       (dotimes (i 2)
@@ -290,7 +272,7 @@ bar baz
         (setq result (cdr result)))
       (should (string-equal (cadr result) "Actions")))))
 
-;; Test dnel--handle-Notify:
+;; Test handler of Notify:
 (ert-deftest dnel--handle-notify-test ()
   (dnel--with-temp-server state
     (let ((id (apply #'dnel--dbus-talk 'call-method 'Notify (dnel--get-test-args))))
@@ -312,7 +294,7 @@ bar baz
       (apply #'dnel--dbus-talk 'call-method 'Notify args)
       (dnel--test-args-match state id args))))
 
-;; Test dnel--handle-CloseNotification:
+;; Test handler of CloseNotification:
 (ert-deftest dnel--handle-close-notification-test ()
   (dnel--with-temp-server state
     (let ((id (apply #'dnel--notify state (dnel--get-test-args))))

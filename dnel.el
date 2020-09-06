@@ -64,27 +64,30 @@ a list of currently active notifications, newest first.")
   "Return notifications of state ARG1.")
 (put 'dnel-notifications 'byte-optimizer 'byte-compile-inline-expand)
 
-(defun dnel-invoke-action (state id &optional action)
-  "Invoke ACTION of the notification identified by ID in STATE.
+(defun dnel-invoke-action (notification &optional action)
+  "Invoke ACTION of the NOTIFICATION.
 
 ACTION defaults to the key \"default\"."
-  (let ((notification (dnel--get-notification state id)))
-    (if notification
-        (dnel--dbus-talk-to (dnel-notification-client notification)
-                            'send-signal 'ActionInvoked id
-                            (or action "default")))))
+  (dnel--dbus-talk-to (dnel-notification-client notification) 'send-signal
+                      'ActionInvoked (dnel-notification-id notification)
+                      (or action "default")))
 
-(defun dnel-close-notification (state id &optional reason)
-  "Close the notification identified by ID in STATE for REASON.
+(defun dnel-close-notification (notification state &optional reason)
+  "Close the NOTIFICATION in STATE for REASON.
 
 REASON defaults to 3 (i.e., closed by call to CloseNotification)."
-  (let* ((notification (dnel--get-notification state id t))
-         (reason (or reason 3)))
-    (if (not notification) (if (= reason 3) (signal 'dbus-error ()))
-      (run-hook-with-args 'dnel-state-changed-functions notification t)
-      (dnel--dbus-talk-to (dnel-notification-client notification)
-                          'send-signal 'NotificationClosed id reason)))
-  :ignore)
+  (when state
+    (delq notification state)  ; no setq!
+    (run-hook-with-args 'dnel-state-changed-functions notification t))
+  (dnel--dbus-talk-to (dnel-notification-client notification) 'send-signal
+                      'NotificationClosed (dnel-notification-id notification)
+                      (or reason 3)))
+
+(defun dnel--close-notification-by-id (state id)
+  "Close the notification in STATE identified by ID."
+  (let ((notification (dnel--get-notification state id t)))
+    (if (not notification) (signal 'dbus-error ())
+      (dnel-close-notification notification nil 3) :ignore)))
 
 (defun dnel-format-notification (state notification &optional full)
   "Return propertized string describing a NOTIFICATION in STATE."
@@ -94,36 +97,37 @@ REASON defaults to 3 (i.e., closed by call to CloseNotification)."
     (format (propertize " %s[%s: %s]%s" 'face (list :inherit inherit))
             (propertize " " 'display (dnel-notification-image notification))
             (dnel-notification-app-name notification)
-            (dnel--format-summary state (dnel-notification-id notification)
+            (dnel--format-summary state notification
                                   (dnel-notification-summary notification)
                                   (dnel-notification-actions notification) full)
             (if full (concat "\n" (dnel-notification-body notification) "\n")
               ""))))
 
-(defun dnel--format-summary (state id summary &optional actions full)
+(defun dnel--format-summary (state notification summary &optional actions full)
   "Propertize SUMMARY for notification identified by ID in STATE.
 
 ACTIONS can be selected from a menu."
-  (let ((controls `((mouse-1 . ,(lambda () (interactive)
-                                  (dnel-invoke-action state id)))
-                    ,(if full `(down-mouse-2 . ,(dnel--format-actions state id
-                                                                      actions))
-                       `(mouse-2 . ,(lambda () (interactive)
-                                      (dnel--pop-to-log-buffer state id))))
-                    (mouse-3 . ,(lambda () (interactive)
-                                  (dnel-close-notification state id 2))))))
+  (let ((controls
+         `((mouse-1 . ,(lambda () (interactive)
+                         (dnel-invoke-action notification)))
+           ,(if full `(down-mouse-2 . ,(dnel--format-actions state notification
+                                                             actions))
+              `(mouse-2 . ,(lambda () (interactive)
+                             (dnel--pop-to-log-buffer state notification))))
+           (mouse-3 . ,(lambda () (interactive)
+                         (dnel-close-notification notification state 2))))))
     (propertize summary 'mouse-face 'mode-line-highlight 'local-map
                 `(keymap (header-line keymap . ,controls)
                          (mode-line keymap . ,controls) . ,controls))))
 
-(defun dnel--format-actions (state id actions)
+(defun dnel--format-actions (_state notification actions)
   "Propertize ACTIONS for notification identified by ID in STATE."
   (let ((result (list 'keymap)))
     (dotimes (i (/ (length actions) 2))
       (let ((key (pop actions)))
         (push (list i 'menu-item (pop actions)
                     (lambda () (interactive)
-                      (dnel-invoke-action state id key)))
+                      (dnel-invoke-action notification key)))
               result)))
     (reverse (cons "Actions" result))))
 
@@ -131,7 +135,7 @@ ACTIONS can be selected from a menu."
   "Register server for keeping track of notifications in STATE."
   (dolist (args `((Notify ,(apply-partially #'dnel--notify state) t)
                   (CloseNotification
-                   ,(apply-partially #'dnel-close-notification state) t)
+                   ,(apply-partially #'dnel--close-notification-by-id state) t)
                   (GetServerInformation
                    ,(lambda () (list "DNel" "sinic" "0.1" "1.2")) t)
                   (GetCapabilities ,(lambda () '(("body" "actions"))) t)))
@@ -141,7 +145,7 @@ ACTIONS can be selected from a menu."
 (defun dnel--stop-server (state)
   "Close all notifications in STATE, then unregister server."
   (while (cdr state)
-    (dnel-close-notification state (dnel-notification-id (cadr state)) 2))
+    (dnel-close-notification (cadr state) state 2))
   (dbus-unregister-service :session dnel--service))
 
 (defun dnel--notify (state app-name replaces-id app-icon summary body actions
@@ -162,8 +166,7 @@ are the received values as described in the Desktop Notification standard."
     (if (> expire-timeout 0)
         (setf (dnel-notification-timer new)
               (run-at-time (/ expire-timeout 1000.0) nil
-                           #'dnel-close-notification state
-                           (dnel-notification-id new) 1)))
+                           #'dnel-close-notification new state 1)))
     (push new (cdr state))
     (run-hook-with-args 'dnel-state-changed-functions new)
     (dnel-notification-id new)))
@@ -274,11 +277,11 @@ REST contains the remaining arguments to that function."
       (if buffer (save-excursion
                    (dnel--update-log state notification remove))))))
 
-(defun dnel--pop-to-log-buffer (state &optional id)
+(defun dnel--pop-to-log-buffer (state &optional notification)
   "Pop to log buffer and to notification identified by ID in STATE."
   (let ((buffer (get-buffer dnel--log-name))
-        (position (if id (dnel-notification-log-position
-                          (dnel--get-notification state id)))))
+        (position (if notification
+                      (dnel-notification-log-position notification))))
     (dnel--with-log-buffer state buffer
       (pop-to-buffer (current-buffer))
       (if position (goto-char position)))))
