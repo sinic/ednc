@@ -76,12 +76,12 @@ ACTION defaults to the key \"default\"."
 (defun dnel-close-notification (notification &optional reason)
   "Close the NOTIFICATION for REASON.
 
-REASON defaults to 3 (i.e., closed by call to CloseNotification)."
+REASON defaults to 2 (i.e., dismissed by user)."
   (dnel--pop-notification (dnel-notification-pop-suffix notification))
   (run-hook-with-args 'dnel-state-changed-functions notification t)
   (dnel--dbus-talk-to (dnel-notification-client notification) 'send-signal
                       'NotificationClosed (dnel-notification-id notification)
-                      (or reason 3)))
+                      (or reason 2)))
 
 (defun dnel--close-notification-by-id (state id)
   "Close the notification in STATE identified by ID."
@@ -115,7 +115,7 @@ ACTIONS can be selected from a menu."
               `(mouse-2 . ,(lambda () (interactive)
                              (dnel--pop-to-log-buffer state notification))))
            (mouse-3 . ,(lambda () (interactive)
-                         (dnel-close-notification notification 2))))))
+                         (dnel-close-notification notification))))))
     (propertize summary 'mouse-face 'mode-line-highlight 'local-map
                 `(keymap (header-line keymap . ,controls)
                          (mode-line keymap . ,controls) . ,controls))))
@@ -145,7 +145,7 @@ ACTIONS can be selected from a menu."
 (defun dnel--stop-server (state)
   "Close all notifications in STATE, then unregister server."
   (while (cdr state)
-    (dnel-close-notification (cadr state) 2))
+    (dnel-close-notification (cadr state)))
   (dbus-unregister-service :session dnel--service))
 
 (defun dnel--notify (state app-name replaces-id app-icon summary body actions
