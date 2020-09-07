@@ -28,7 +28,7 @@
 ;; can be retrieved as a list with the function `dnel-notifications'.
 ;; DNel also provides a hook `dnel-notifications-changed-functions', so
 ;; that users can handle newly added and removed notifications as they
-;; see fit. By default, past and present notifications are recorded in
+;; see fit.  By default, past and present notifications are recorded in
 ;; the interactive log buffer `*dnel-log*'.
 
 ;;; Code:
@@ -138,7 +138,7 @@ If FULL is nil, link to the log, otherwise include a menu for actions."
     (reverse (cons "Actions" result))))
 
 (defun dnel--start-server ()
-  "Register server that keeps track of notifications from then on."
+  "Register server to keep track of notifications in `dnel--state'."
   (dolist (args `((Notify ,#'dnel--notify t)
                   (CloseNotification ,#'dnel--close-notification-by-id t)
                   (GetServerInformation
@@ -231,7 +231,7 @@ This function is destructive."
           (setcdr (setq cell (funcall keep cell)) (funcall delete cell))))))
 
 (defun dnel--push-notification (notification)
-  "Push NOTIFICATION to parent state dnel--state."
+  "Push NOTIFICATION to parent state `dnel--state'."
   (let ((state dnel--state))
     (setf (dnel-notification-pop-suffix notification) state)
     (let ((next (cadr state)))
@@ -280,12 +280,14 @@ REST contains the remaining arguments to that function."
              (insert (dnel-format-notification notification t) ?\n))))
        ,@body)))
 
-(defun dnel--update-log-buffer (notification &optional remove)
-  "Update log buffer to reflect new status of NOTIFICATION."
+(defun dnel--update-log-buffer (notification &optional removep)
+  "Update log buffer to reflect new status of NOTIFICATION.
+
+If REMOVEP is nil, NOTIFICATION was added, otherwise it was removed."
   (let ((buffer (get-buffer dnel--log-name)))
     (dnel--with-log-buffer buffer
       (if buffer (save-excursion
-                   (dnel--update-log notification remove))))))
+                   (dnel--update-log notification removep))))))
 
 (defun dnel--pop-to-log-buffer (&optional notification)
   "Pop to log buffer and (optionally) move point to NOTIFICATION."
@@ -296,12 +298,14 @@ REST contains the remaining arguments to that function."
       (pop-to-buffer (current-buffer))
       (if position (goto-char position)))))
 
-(defun dnel--update-log (notification &optional remove)
-  "Update current buffer to reflect new status of NOTIFICATION."
+(defun dnel--update-log (notification &optional removep)
+  "Update current buffer to reflect new status of NOTIFICATION.
+
+If REMOVEP is nil, NOTIFICATION was added, otherwise it was removed."
   (let ((old (dnel-notification-log-position notification)))
     (if old (add-text-properties (goto-char old) (line-end-position)
                                  '(face (:strike-through t) local-map ()))))
-  (unless remove
+  (unless removep
     (setf (dnel-notification-log-position notification) (goto-char (point-max)))
     (insert (dnel-format-notification notification t) ?\n)))
 
