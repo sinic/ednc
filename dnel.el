@@ -85,9 +85,9 @@ REASON defaults to 2 (i.e., dismissed by user)."
 
 (defun dnel--close-notification-by-id (state id)
   "Close the notification in STATE identified by ID."
-  (let ((notification (dnel--get-notification state id)))
-    (if (not notification) (signal 'dbus-error ())
-      (dnel-close-notification notification 3) :ignore)))
+  (let ((found (cl-find id (cdr state) :test #'eq :key #'dnel-notification-id)))
+    (if found (dnel-close-notification found 3)
+      (signal 'dbus-error ()))) :ignore)
 
 (defun dnel-format-notification (state notification &optional full)
   "Return propertized description of NOTIFICATION in STATE.
@@ -160,8 +160,9 @@ are the received values as described in the Desktop Notification standard."
               :client (dbus-event-service-name last-input-event))))
     (setf (dnel-notification-id new)
           (or (unless (zerop replaces-id)
-                (dnel-notification-id
-                 (dnel--get-notification state replaces-id t)))
+                (let ((found (cl-find replaces-id (cdr state) :test #'eq
+                                      :key #'dnel-notification-id)))
+                  (when found (dnel--delete-notification found) replaces-id)))
               (setcar state (1+ (car state)))))
     (if (> expire-timeout 0)
         (setf (dnel-notification-timer new)
@@ -224,15 +225,6 @@ This function is destructive."
             (keep (if (= payload 3) #'cdddr (apply-partially #'nthcdr payload))))
         (while (cdr cell)
           (setcdr (setq cell (funcall keep cell)) (funcall delete cell))))))
-
-(defun dnel--get-notification (state id &optional remove)
-  "Return from STATE the notification identified by ID.
-
-The returned notification is deleted from STATE if REMOVE is non-nil."
-  (while (and (cdr state) (/= id (dnel-notification-id (cadr state))))
-    (setq state (cdr state)))
-  (let ((found (cadr state)))
-    (if (and found remove) (dnel--delete-notification found) found)))
 
 (defun dnel--push-notification (notification state)
   "Push NOTIFICATION to STATE."

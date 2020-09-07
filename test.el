@@ -40,7 +40,7 @@
             (mapcar #'car dnel--default-test-alist))))
 
 (defun dnel--test-args-match (state id args)
-  (let ((found (dnel--get-notification state id)))
+  (let ((found (cl-find id (cdr state) :key #'dnel-notification-id)))
     (dolist (property (mapcar #'car dnel--default-test-alist))
       (let ((arg (car args)))
         (cond ((eq property 'app-icon))
@@ -196,7 +196,7 @@ bar baz
 (ert-deftest dnel--log-closed-notifications-test ()
   (dnel--with-temp-server state
     (let* ((id (apply #'dnel--notify state (dnel--get-test-args)))
-           (notification (dnel--get-notification state id)))
+           (notification (cl-find id (cdr state) :key #'dnel-notification-id)))
       (with-temp-buffer
         (dnel--update-log state notification)
         (apply #'dnel--notify state (dnel--get-test-args '(app-name . "tes1")))
@@ -227,7 +227,7 @@ bar baz
   (dnel--with-temp-server state
     (let ((id (apply #'dnel--notify state (dnel--get-test-args))))
       (dnel-close-notification (cadr state) 3)
-      (should-not (dnel--get-notification state id)))))  ; gone?
+      (should-not (cl-find id (cdr state) :key #'dnel-notification-id)))))
 
 ;; Test dnel--format-notification:
 (ert-deftest dnel--format-notification-test ()
@@ -282,7 +282,7 @@ bar baz
            (id (apply #'dnel--dbus-talk 'call-method 'Notify args)))
       (dnel--test-args-match state id args)
       (sleep-for (/ (* 2 timeout) 1000.0))
-      (should-not (dnel--get-notification state id)))))  ; gone?
+      (should-not (cl-find id (cdr state) :key #'dnel-notification-id)))))
 
 (ert-deftest dnel--handle-notify-replace-test ()
   (dnel--with-temp-server state
@@ -291,12 +291,20 @@ bar baz
       (apply #'dnel--dbus-talk 'call-method 'Notify args)
       (dnel--test-args-match state id args))))
 
+(ert-deftest dnel--handle-notify-replace-nonexistent-test ()
+  (dnel--with-temp-server state
+    (let* ((id (apply #'dnel--notify state (dnel--get-test-args)))
+           (args (dnel--get-test-args `(replaces-id . ,(+ 5 id)))))
+      (dnel--test-args-match state id (dnel--get-test-args))
+      (setq id (apply #'dnel--dbus-talk 'call-method 'Notify args))
+      (dnel--test-args-match state id (dnel--get-test-args)))))
+
 ;; Test handler of CloseNotification:
 (ert-deftest dnel--handle-close-notification-test ()
   (dnel--with-temp-server state
     (let ((id (apply #'dnel--notify state (dnel--get-test-args))))
       (dnel--dbus-talk 'call-method 'CloseNotification id)
-      (should-not (dnel--get-notification state id)))))  ; gone?
+      (should-not (cl-find id (cdr state) :key #'dnel-notification-id)))))
 
 (ert-deftest dnel--handle-close-previously-closed-notification-test ()
   (dnel--with-temp-server state
@@ -403,34 +411,5 @@ bar baz
   (let ((list (list 'foo 'bar 'baz 'qux 'quux 'corge 'grault 'garply)))
     (dnel--delete-padding list 3 4)
     (should (equal list '(foo bar baz quux corge grault)))))
-
-;; Test dnel-get-notification:
-(ert-deftest dnel--get-notification-test ()
-  (dnel--with-temp-server state
-    (apply #'dnel--notify state (dnel--get-test-args))
-    (let* ((older (apply #'dnel--notify state (dnel--get-test-args)))
-           (newest (apply #'dnel--notify state (dnel--get-test-args))))
-      (should (= older (dnel-notification-id
-                        (dnel--get-notification state older))))
-      (should (= newest (dnel-notification-id
-                         (dnel--get-notification state newest)))))))
-
-(ert-deftest dnel--get-and-remove-notification-test ()
-  (dnel--with-temp-server state
-    (apply #'dnel--notify state (dnel--get-test-args))
-    (let* ((older (apply #'dnel--notify state (dnel--get-test-args)))
-           (newest (apply #'dnel--notify state (dnel--get-test-args))))
-      (should (= older (dnel-notification-id
-                        (dnel--get-notification state older t))))
-      (should-not (dnel--get-notification state older))  ; older gone, and
-      (should (= newest (dnel-notification-id
-                         (dnel--get-notification state newest t))))
-      (should-not (dnel--get-notification state newest)))))  ; newest gone?
-
-(ert-deftest dnel--get-or-remove-nonexistent-notification-test ()
-  (dnel--with-temp-server state
-    (let ((unused (1+ (apply #'dnel--notify state (dnel--get-test-args)))))
-      (should-not (dnel--get-notification state unused t))  ; neither remove,
-      (should-not (dnel--get-notification state unused)))))  ; nor get only?
 
 ;;; test.el ends here
