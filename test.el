@@ -241,26 +241,23 @@ bar baz
   (dnel--with-temp-server state
     (apply #'dnel--notify state (dnel--get-test-args))
     (let* ((new (cadr state))
-           (result (dnel--format-summary state new
-                                         (dnel-notification-summary new))))
+           (result (dnel--format-summary state new)))
       (should (string-equal result (dnel-notification-summary new))))))
 
-;; Test dnel--format-actions:
-(ert-deftest dnel--format-empty-actions-test ()
+;; Test dnel--get-actions-keymap:
+(ert-deftest dnel--get-empty-actions-keymap-test ()
   (dnel--with-temp-server state
     (apply #'dnel--notify state (dnel--get-test-args '(actions)))
     (let* ((new (cadr state))
-           (result (dnel--format-actions state new
-                                         (dnel-notification-actions new))))
+           (result (dnel--get-actions-keymap new)))
       (should (eq (car result) 'keymap))
       (should (string-equal (cadr result) "Actions")))))
 
-(ert-deftest dnel--format-actions-test ()
+(ert-deftest dnel--get-actions-keymap-test ()
   (dnel--with-temp-server state
     (apply #'dnel--notify state (dnel--get-test-args))
     (let* ((new (cadr state))
-           (result (dnel--format-actions state new
-                                         (dnel-notification-actions new))))
+           (result (dnel--get-actions-keymap new)))
       (should (eq (car result) 'keymap))
       (dotimes (i 2)
         (let ((entry (cadr result)))

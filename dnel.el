@@ -90,28 +90,28 @@ REASON defaults to 2 (i.e., dismissed by user)."
       (dnel-close-notification notification 3) :ignore)))
 
 (defun dnel-format-notification (state notification &optional full)
-  "Return propertized string describing a NOTIFICATION in STATE."
+  "Return propertized description of NOTIFICATION in STATE.
+
+If FULL is non-nil, include details, possibly across multiple lines."
   (let* ((hints (dnel-notification-hints notification))
          (urgency (or (dnel--get-hint hints "urgency") 1))
          (inherit (if (<= urgency 0) 'shadow (if (>= urgency 2) 'bold))))
     (format (propertize " %s[%s: %s]%s" 'face (list :inherit inherit))
             (propertize " " 'display (dnel-notification-image notification))
             (dnel-notification-app-name notification)
-            (dnel--format-summary state notification
-                                  (dnel-notification-summary notification)
-                                  (dnel-notification-actions notification) full)
+            (dnel--format-summary state notification full)
             (if full (concat "\n" (dnel-notification-body notification) "\n")
               ""))))
 
-(defun dnel--format-summary (state notification summary &optional actions full)
-  "Propertize SUMMARY for notification identified by ID in STATE.
+(defun dnel--format-summary (state notification &optional full)
+  "Return propertized summary of NOTIFICATION in STATE.
 
-ACTIONS can be selected from a menu."
-  (let ((controls
+If FULL is nil, link to the log, otherwise include a menu for actions."
+  (let ((summary (dnel-notification-summary notification))
+        (controls
          `((mouse-1 . ,(lambda () (interactive)
                          (dnel-invoke-action notification)))
-           ,(if full `(down-mouse-2 . ,(dnel--format-actions state notification
-                                                             actions))
+           ,(if full `(down-mouse-2 . ,(dnel--get-actions-keymap notification))
               `(mouse-2 . ,(lambda () (interactive)
                              (dnel--pop-to-log-buffer state notification))))
            (mouse-3 . ,(lambda () (interactive)
@@ -120,9 +120,10 @@ ACTIONS can be selected from a menu."
                 `(keymap (header-line keymap . ,controls)
                          (mode-line keymap . ,controls) . ,controls))))
 
-(defun dnel--format-actions (_state notification actions)
-  "Propertize ACTIONS for notification identified by ID in STATE."
-  (let ((result (list 'keymap)))
+(defun dnel--get-actions-keymap (notification)
+  "Return keymap for actions of NOTIFICATION."
+  (let ((actions (dnel-notification-actions notification))
+        (result (list 'keymap)))
     (dotimes (i (/ (length actions) 2))
       (let ((key (pop actions)))
         (push (list i 'menu-item (pop actions)
