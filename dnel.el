@@ -163,7 +163,7 @@ are the received values as described in the Desktop Notification standard."
                 (let ((found (cl-find replaces-id (cdr dnel--state) :test #'eq
                                       :key #'dnel-notification-id)))
                   (when found (dnel--delete-notification found) replaces-id)))
-              (setcar dnel--state (1+ (car dnel--state)))))
+              (cl-incf (car dnel--state))))
     (if (> expire-timeout 0)
         (setf (dnel-notification-timer new)
               (run-at-time (/ expire-timeout 1000.0) nil
