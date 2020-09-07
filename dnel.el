@@ -77,7 +77,7 @@ ACTION defaults to the key \"default\"."
   "Close the NOTIFICATION for REASON.
 
 REASON defaults to 2 (i.e., dismissed by user)."
-  (dnel--pop-notification (dnel-notification-pop-suffix notification))
+  (dnel--delete-notification notification)
   (run-hook-with-args 'dnel-state-changed-functions notification t)
   (dnel--dbus-talk-to (dnel-notification-client notification) 'send-signal
                       'NotificationClosed (dnel-notification-id notification)
@@ -231,23 +231,24 @@ This function is destructive."
 The returned notification is deleted from STATE if REMOVE is non-nil."
   (while (and (cdr state) (/= id (dnel-notification-id (cadr state))))
     (setq state (cdr state)))
-  (if (not remove) (cadr state)
-    (dnel--pop-notification state)))
+  (let ((found (cadr state)))
+    (if (and found remove) (dnel--delete-notification found) found)))
 
-(defun dnel--push-notification (notification suffix)
-  "Push NOTIFICATION to an arbitrary SUFFIX of state."
-  (setf (dnel-notification-pop-suffix notification) suffix)
-  (let ((old-top (cadr suffix)))
-    (push notification (cdr suffix))
-    (if old-top (setf (dnel-notification-pop-suffix old-top) (cdr suffix)))))
+(defun dnel--push-notification (notification state)
+  "Push NOTIFICATION to STATE."
+  (setf (dnel-notification-pop-suffix notification) state)
+  (let ((next (cadr state)))
+    (push notification (cdr state))
+    (if next (setf (dnel-notification-pop-suffix next) (cdr state)))))
 
-(defun dnel--pop-notification (suffix)
-  "Pop and return notification from an arbitrary SUFFIX of state."
-  (let ((timer (if (cdr suffix) (dnel-notification-timer (cadr suffix)))))
-    (if timer (cancel-timer timer)))
-  (let ((new-top (caddr suffix)))
-    (if new-top (setf (dnel-notification-pop-suffix new-top) suffix)))
-  (pop (cdr suffix)))
+(defun dnel--delete-notification (notification)
+  "Delete NOTIFICATION from state and return it."
+  (let ((suffix (dnel-notification-pop-suffix notification)))
+    (let ((timer (dnel-notification-timer notification)))
+      (if timer (cancel-timer timer)))
+    (let ((next (caddr suffix)))
+      (if next (setf (dnel-notification-pop-suffix next) suffix)))
+    (pop (cdr suffix))))
 
 (defun dnel--dbus-talk-to (service suffix symbol &rest rest)
   "Help with most actions involving D-Bus service SERVICE.
