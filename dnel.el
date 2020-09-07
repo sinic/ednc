@@ -24,11 +24,12 @@
 ;; DNel is an Emacs package that implements a Desktop Notifications
 ;; server in pure Lisp, aspiring to be a small, but flexible drop-in
 ;; replacement for standalone daemons like Dunst.  Active notifications
-;; are tracked in the global variable `dnel-state' whenever the global
-;; minor mode `dnel-mode' is active.  Users are free to monitor the
-;; contents of that variable as they see fit, though DNel does provide
-;; some additional convenience functions.  By default, past and present
-;; notifications are recorded in the buffer `*dnel-log*'.
+;; are tracked whenever the global minor mode `dnel-mode' is active and
+;; can be retrieved as a list with the function `dnel-notifications'.
+;; DNel also provides a hook `dnel-notifications-changed-functions', so
+;; that users can handle newly added and removed notifications as they
+;; see fit. By default, past and present notifications are recorded in
+;; the interactive log buffer `*dnel-log*'.
 
 ;;; Code:
 (require 'cl-lib)
@@ -49,21 +50,20 @@
 (define-minor-mode dnel-mode
   "Act as a Desktop Notifications server and track notifications."
   :global t :lighter " DNel"
-  (funcall (if dnel-mode #'add-hook #'remove-hook) 'dnel-state-changed-functions
-           (apply-partially #'dnel--update-log-buffer dnel-state))
-  (funcall (if dnel-mode #'dnel--start-server #'dnel--stop-server) dnel-state))
+  (funcall (if dnel-mode #'add-hook #'remove-hook)
+           'dnel-notifications-changed-functions #'dnel--update-log-buffer)
+  (if dnel-mode (dnel--start-server) (dnel--stop-server)))
 
-(defvar dnel-state (list 0)
+(defvar dnel--state (list 0)
   "The minor mode tracks all active desktop notifications here.
 
-This is an opaque object that should only be used as an argument to
-other functions in this package.  It is currently implemented as a cons
-cell: its car is the count of distinct IDs assigned so far, its cdr is
-a list of currently active notifications, newest first.")
+This object is currently implemented as a cons cell: its car is the
+count of distinct IDs assigned so far, its cdr is a list of currently
+active notifications, newest first.")
 
-(defalias 'dnel-notifications 'cdr
-  "Return notifications of state ARG1.")
-(put 'dnel-notifications 'byte-optimizer 'byte-compile-inline-expand)
+(defun dnel-notifications ()
+  "Return currently active notifications."
+  (cdr dnel--state))
 
 (defun dnel-invoke-action (notification &optional action)
   "Invoke ACTION of the NOTIFICATION.
@@ -78,19 +78,20 @@ ACTION defaults to the key \"default\"."
 
 REASON defaults to 2 (i.e., dismissed by user)."
   (dnel--delete-notification notification)
-  (run-hook-with-args 'dnel-state-changed-functions notification t)
+  (run-hook-with-args 'dnel-notifications-changed-functions notification t)
   (dnel--dbus-talk-to (dnel-notification-client notification) 'send-signal
                       'NotificationClosed (dnel-notification-id notification)
                       (or reason 2)))
 
-(defun dnel--close-notification-by-id (state id)
-  "Close the notification in STATE identified by ID."
-  (let ((found (cl-find id (cdr state) :test #'eq :key #'dnel-notification-id)))
+(defun dnel--close-notification-by-id (id)
+  "Close the notification identified by ID."
+  (let ((found (cl-find id (cdr dnel--state) :test #'eq
+                        :key #'dnel-notification-id)))
     (if found (dnel-close-notification found 3)
       (signal 'dbus-error ()))) :ignore)
 
-(defun dnel-format-notification (state notification &optional full)
-  "Return propertized description of NOTIFICATION in STATE.
+(defun dnel-format-notification (notification &optional full)
+  "Return propertized description of NOTIFICATION.
 
 If FULL is non-nil, include details, possibly across multiple lines."
   (let* ((hints (dnel-notification-hints notification))
@@ -99,12 +100,12 @@ If FULL is non-nil, include details, possibly across multiple lines."
     (format (propertize " %s[%s: %s]%s" 'face (list :inherit inherit))
             (propertize " " 'display (dnel-notification-image notification))
             (dnel-notification-app-name notification)
-            (dnel--format-summary state notification full)
+            (dnel--format-summary notification full)
             (if full (concat "\n" (dnel-notification-body notification) "\n")
               ""))))
 
-(defun dnel--format-summary (state notification &optional full)
-  "Return propertized summary of NOTIFICATION in STATE.
+(defun dnel--format-summary (notification &optional full)
+  "Return propertized summary of NOTIFICATION.
 
 If FULL is nil, link to the log, otherwise include a menu for actions."
   (let ((summary (dnel-notification-summary notification))
@@ -113,7 +114,7 @@ If FULL is nil, link to the log, otherwise include a menu for actions."
                          (dnel-invoke-action notification)))
            ,(if full `(down-mouse-2 . ,(dnel--get-actions-keymap notification))
               `(mouse-2 . ,(lambda () (interactive)
-                             (dnel--pop-to-log-buffer state notification))))
+                             (dnel--pop-to-log-buffer notification))))
            (mouse-3 . ,(lambda () (interactive)
                          (dnel-close-notification notification))))))
     (propertize summary 'mouse-face 'mode-line-highlight 'local-map
@@ -132,25 +133,24 @@ If FULL is nil, link to the log, otherwise include a menu for actions."
               result)))
     (reverse (cons "Actions" result))))
 
-(defun dnel--start-server (state)
-  "Register server for keeping track of notifications in STATE."
-  (dolist (args `((Notify ,(apply-partially #'dnel--notify state) t)
-                  (CloseNotification
-                   ,(apply-partially #'dnel--close-notification-by-id state) t)
+(defun dnel--start-server ()
+  "Register server that keeps track of notifications from then on."
+  (dolist (args `((Notify ,#'dnel--notify t)
+                  (CloseNotification ,#'dnel--close-notification-by-id t)
                   (GetServerInformation
                    ,(lambda () (list "DNel" "sinic" "0.1" "1.2")) t)
                   (GetCapabilities ,(lambda () '(("body" "actions"))) t)))
     (apply #'dnel--dbus-talk 'register-method args))
   (dbus-register-service :session dnel--service))
 
-(defun dnel--stop-server (state)
-  "Close all notifications in STATE, then unregister server."
-  (mapc #'dnel-close-notification (cdr state))
+(defun dnel--stop-server ()
+  "Close all notifications, then unregister server."
+  (mapc #'dnel-close-notification (cdr dnel--state))
   (dbus-unregister-service :session dnel--service))
 
-(defun dnel--notify (state app-name replaces-id app-icon summary body actions
-                           hints expire-timeout)
-  "Handle call by introducing notification to STATE, return ID.
+(defun dnel--notify (app-name replaces-id app-icon summary body actions
+                              hints expire-timeout)
+  "Handle call by introducing a new notification and return its ID.
 
 APP-NAME, REPLACES-ID, APP-ICON, SUMMARY, BODY, ACTIONS, HINTS, EXPIRE-TIMEOUT
 are the received values as described in the Desktop Notification standard."
@@ -160,16 +160,16 @@ are the received values as described in the Desktop Notification standard."
               :client (dbus-event-service-name last-input-event))))
     (setf (dnel-notification-id new)
           (or (unless (zerop replaces-id)
-                (let ((found (cl-find replaces-id (cdr state) :test #'eq
+                (let ((found (cl-find replaces-id (cdr dnel--state) :test #'eq
                                       :key #'dnel-notification-id)))
                   (when found (dnel--delete-notification found) replaces-id)))
-              (setcar state (1+ (car state)))))
+              (setcar dnel--state (1+ (car dnel--state)))))
     (if (> expire-timeout 0)
         (setf (dnel-notification-timer new)
               (run-at-time (/ expire-timeout 1000.0) nil
                            #'dnel-close-notification new 1)))
-    (dnel--push-notification new state)
-    (run-hook-with-args 'dnel-state-changed-functions new)
+    (dnel--push-notification new)
+    (run-hook-with-args 'dnel-notifications-changed-functions new)
     (dnel-notification-id new)))
 
 (defun dnel--get-image (hints app-icon)
@@ -226,15 +226,16 @@ This function is destructive."
         (while (cdr cell)
           (setcdr (setq cell (funcall keep cell)) (funcall delete cell))))))
 
-(defun dnel--push-notification (notification state)
-  "Push NOTIFICATION to STATE."
-  (setf (dnel-notification-pop-suffix notification) state)
-  (let ((next (cadr state)))
-    (push notification (cdr state))
-    (if next (setf (dnel-notification-pop-suffix next) (cdr state)))))
+(defun dnel--push-notification (notification)
+  "Push NOTIFICATION to parent state dnel--state."
+  (let ((state dnel--state))
+    (setf (dnel-notification-pop-suffix notification) state)
+    (let ((next (cadr state)))
+      (push notification (cdr state))
+      (if next (setf (dnel-notification-pop-suffix next) (cdr state))))))
 
 (defun dnel--delete-notification (notification)
-  "Delete NOTIFICATION from state and return it."
+  "Delete NOTIFICATION from parent state and return it."
   (let ((suffix (dnel-notification-pop-suffix notification)))
     (let ((timer (dnel-notification-timer notification)))
       (if timer (cancel-timer timer)))
@@ -262,43 +263,43 @@ SYMBOL is named after the function's first argument (e.g., `GetServerInfo'),
 REST contains the remaining arguments to that function."
   (apply #'dnel--dbus-talk-to dnel--service suffix symbol rest))
 
-(defmacro dnel--with-log-buffer (state &optional buffer &rest body)
-  "Execute BODY with log BUFFER or new one initialized with STATE."
+(defmacro dnel--with-log-buffer (&optional buffer &rest body)
+  "Execute BODY with log BUFFER or with a newly initialized one."
   (declare (indent 1))
   `(with-current-buffer (or ,buffer (generate-new-buffer dnel--log-name))
      (let ((inhibit-read-only t))
        (unless ,buffer
          (special-mode)
          (save-excursion
-           (dolist (notification (reverse (cdr ,state)))
+           (dolist (notification (reverse (cdr dnel--state)))
              (setf (dnel-notification-log-position notification) (point))
-             (insert (dnel-format-notification ,state notification t) ?\n))))
+             (insert (dnel-format-notification notification t) ?\n))))
        ,@body)))
 
-(defun dnel--update-log-buffer (state notification &optional remove)
-  "Update log buffer to reflect status of NOTIFICATION in STATE."
+(defun dnel--update-log-buffer (notification &optional remove)
+  "Update log buffer to reflect new status of NOTIFICATION."
   (let ((buffer (get-buffer dnel--log-name)))
-    (dnel--with-log-buffer state buffer
+    (dnel--with-log-buffer buffer
       (if buffer (save-excursion
-                   (dnel--update-log state notification remove))))))
+                   (dnel--update-log notification remove))))))
 
-(defun dnel--pop-to-log-buffer (state &optional notification)
-  "Pop to log buffer and to notification identified by ID in STATE."
+(defun dnel--pop-to-log-buffer (&optional notification)
+  "Pop to log buffer and (optionally) move point to NOTIFICATION."
   (let ((buffer (get-buffer dnel--log-name))
         (position (if notification
                       (dnel-notification-log-position notification))))
-    (dnel--with-log-buffer state buffer
+    (dnel--with-log-buffer buffer
       (pop-to-buffer (current-buffer))
       (if position (goto-char position)))))
 
-(defun dnel--update-log (state notification &optional remove)
-  "Update current buffer to reflect status of NOTIFICATION in STATE."
+(defun dnel--update-log (notification &optional remove)
+  "Update current buffer to reflect new status of NOTIFICATION."
   (let ((old (dnel-notification-log-position notification)))
     (if old (add-text-properties (goto-char old) (line-end-position)
                                  '(face (:strike-through t) local-map ()))))
   (unless remove
     (setf (dnel-notification-log-position notification) (goto-char (point-max)))
-    (insert (dnel-format-notification state notification t) ?\n)))
+    (insert (dnel-format-notification notification t) ?\n)))
 
 (provide 'dnel)
 ;;; dnel.el ends here

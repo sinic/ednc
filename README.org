@@ -4,23 +4,24 @@ DNel is an Emacs package that implements a
 [[https://people.gnome.org/~mccann/docs/notification-spec/notification-spec-latest.html][Desktop Notifications service]]
 in pure Lisp, aspiring to be a small, but flexible drop-in replacement for
 standalone daemons like [[https://dunst-project.org/][Dunst]].
-Active notifications are tracked in the global variable ~dnel-state~
-whenever the global minor mode ~dnel-mode~ is active.
-Users are free to monitor the contents of that variable as they see fit, though
-DNel does provide some additional convenience functions.
-By default, past and present notifications are recorded in the
-buffer ~*dnel-log*~.
+Active notifications are tracked
+whenever the global minor mode ~dnel-mode~ is active and
+can be retrieved as a list with the function ~dnel-notifications~.
+DNel also provides a hook ~dnel-notifications-changed-functions~, so that
+users can handle newly added and removed notifications as they see fit.
+By default, past and present notifications are recorded
+in the interactive log buffer ~*dnel-log*~.
 
 ** Getting Started
 
 For now, simply execute the ~package-install-file~ command and point it to a
 local copy of this repository.
 The package will hopefully end up on [[https://melpa.org][MELPA]] in due time.
-After installation, ensure that no other notification daemon is active, execute
-~dnel-mode~, and make use of your session's currently active notifications in
-~dnel-state~ whenever the (abnormal) hook ~dnel-state-changed-functions~ runs
-(read on for some suggestions).
-Enjoy!
+After installation, ensure that no other notification daemon is active,
+execute the ~dnel-mode~ command to activate the global minor mode, and
+retrieve the active notifications with the function ~dnel-notifications~
+whenever the (abnormal) hook ~dnel-notifications-changed-functions~ runs.
+Read on for some suggestions.
 
 *** Use Case 1: Show Active Notifications
 
@@ -28,16 +29,15 @@ Simply showing all active notifications in the mode-line can be accomplished by
 defining a function that returns the notifications as a string:
 #+NAME: list
 #+BEGIN_SRC emacs-lisp :tangle yes
-(defun list-notifications (state)
-  (mapconcat (apply-partially #'dnel-format-notification state)
-             (dnel-notifications state) ""))
+(defun list-notifications ()
+  (mapconcat #'dnel-format-notification (dnel-notifications) ""))
 #+END_SRC
 
 The function is called from the mode line for every change to the notifications:
 #+BEGIN_SRC emacs-lisp
-(nconc global-mode-string '((:eval (list-notifications dnel-state))))
-(add-hook 'dnel-state-changed-functions (lambda (&rest _)
-                                          (force-mode-line-update t)))
+(nconc global-mode-string '((:eval (list-notifications))))
+(add-hook 'dnel-notifications-changed-functions (lambda (&rest _)
+                                                  (force-mode-line-update t)))
 #+END_SRC
 
 Every notification has text properties so that
@@ -52,19 +52,19 @@ Instead of showing all notifications, it is possible to only display the newest
 notification per application by defining an appropriate function:
 #+NAME: stack
 #+BEGIN_SRC emacs-lisp :tangle yes
-(defun stack-notifications (state &optional hide)
+(defun stack-notifications (&optional hide)
   (mapconcat (lambda (notification)
                (let ((app-name (dnel-notification-app-name notification)))
                  (if (member app-name hide) ""
                    (push app-name hide)
-                   (dnel-format-notification state notification))))
-             (dnel-notifications state) ""))
+                   (dnel-format-notification notification))))
+             (dnel-notifications) ""))
 #+END_SRC
 
 It is called exactly the same as the function in the previous case:
 #+BEGIN_SRC emacs-lisp
-(nconc global-mode-string '((:eval (stack-notifications dnel-state))))
-(add-hook 'dnel-state-changed-functions (lambda (&rest _)
-                                          (force-mode-line-update t)))
+(nconc global-mode-string '((:eval (stack-notifications))))
+(add-hook 'dnel-notifications-changed-functions (lambda (&rest _)
+                                                  (force-mode-line-update t)))
 #+END_SRC
 
