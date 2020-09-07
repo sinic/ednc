@@ -103,7 +103,7 @@
     (let* ((args (dnel--get-test-args '(body . "baz bar")))
            (id (apply #'dnel--notify (dnel--get-test-args)))
            (test (make-ert-test
-                  :body (lambda () (dnel--test-args-match state id args)))))
+                  :body (lambda () (dnel--test-args-match id args)))))
       (should-error (ert-test-passed-p (ert-run-test test))))))
 
 (ert-deftest dnel--test-consistency-of-consistent-state-test ()
