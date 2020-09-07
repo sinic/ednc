@@ -22,7 +22,8 @@
 ;; Helpers for testing:
 (defmacro dnel--with-temp-server (&rest body)
   (declare (indent 1))
-  `(let ((dnel--state (list 0)))
+  `(let ((dnel-notifications-changed-functions)
+         (dnel--state (list 0)))
      (skip-unless (not dnel-mode))  ; conflicting servers?
      (dnel--start-server)
      ,@body

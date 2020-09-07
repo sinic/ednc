@@ -50,9 +50,13 @@
 (define-minor-mode dnel-mode
   "Act as a Desktop Notifications server and track notifications."
   :global t :lighter " DNel"
-  (funcall (if dnel-mode #'add-hook #'remove-hook)
-           'dnel-notifications-changed-functions #'dnel--update-log-buffer)
   (if dnel-mode (dnel--start-server) (dnel--stop-server)))
+
+(defvar dnel-notifications-changed-functions #'dnel--update-log-buffer
+  "Functions in this list are called on changes to notifications.
+
+Their arguments are the changed notification, and an optional flag.
+The notification was added if the flag is nil, or removed otherwise.")
 
 (defvar dnel--state (list 0)
   "The minor mode tracks all active desktop notifications here.
