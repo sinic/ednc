@@ -162,8 +162,7 @@ are the received values as described in the Desktop Notification standard."
           (or (unless (zerop replaces-id)
                 (dnel-notification-id
                  (dnel--get-notification state replaces-id t)))
-              (setcar state (1+ (car state))))
-          (dnel-notification-pop-suffix new) state)
+              (setcar state (1+ (car state)))))
     (if (> expire-timeout 0)
         (setf (dnel-notification-timer new)
               (run-at-time (/ expire-timeout 1000.0) nil
@@ -238,6 +237,7 @@ The returned notification is deleted from STATE if REMOVE is non-nil."
 
 (defun dnel--push-notification (notification suffix)
   "Push NOTIFICATION to an arbitrary SUFFIX of state."
+  (setf (dnel-notification-pop-suffix notification) suffix)
   (let ((old-top (cadr suffix)))
     (push notification (cdr suffix))
     (if old-top (setf (dnel-notification-pop-suffix old-top) (cdr suffix)))))
