@@ -225,7 +225,6 @@ This function is destructive."
         (while (cdr cell)
           (setcdr (setq cell (funcall keep cell)) (funcall delete cell))))))
 
-;; Timers call this function, so keep an eye on complexity:
 (defun dnel--get-notification (state id &optional remove)
   "Return from STATE the notification identified by ID.
 
