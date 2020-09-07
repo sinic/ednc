@@ -145,8 +145,7 @@ If FULL is nil, link to the log, otherwise include a menu for actions."
 
 (defun dnel--stop-server (state)
   "Close all notifications in STATE, then unregister server."
-  (while (cdr state)
-    (dnel-close-notification (cadr state)))
+  (mapc #'dnel-close-notification (cdr state))
   (dbus-unregister-service :session dnel--service))
 
 (defun dnel--notify (state app-name replaces-id app-icon summary body actions
