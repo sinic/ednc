@@ -28,8 +28,8 @@
 ;; can be retrieved as a list with the function `dnel-notifications'.
 ;; DNel also provides a hook `dnel-notifications-changed-functions', so
 ;; that users can handle newly added and removed notifications as they
-;; see fit.  By default, past and present notifications are recorded in
-;; the interactive log buffer `*dnel-log*'.
+;; see fit.  To be useful out of the box, DNel records past and present
+;; notifications in the interactive log buffer `*dnel-log*'.
 
 ;;; Code:
 (require 'cl-lib)
