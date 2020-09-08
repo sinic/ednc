@@ -12,44 +12,42 @@ users can handle newly added and removed notifications as they see fit.
 By default, past and present notifications are recorded
 in the interactive log buffer ~*dnel-log*~.
 
-** Getting Started
+** Basic Usage
 
-For now, simply execute the ~package-install-file~ command and point it to a
-local copy of this repository.
+For now, simply execute the ~package-install-file~ command and
+point it to a local copy of this repository.
 The package will hopefully end up on [[https://melpa.org][MELPA]] in due time.
+
 After installation, ensure that no other notification daemon is active,
 execute the ~dnel-mode~ command to activate the global minor mode, and
-retrieve the active notifications with the function ~dnel-notifications~
+call the ~dnel-pop-to-log-buffer~ function to see the interactive log buffer
+where past and present notifications are recorded in the background.
+
+Every notification record has text properties so that
+- hovering over its summary displays the body as a tooltip,
+- the left mouse button invokes the notification's default action,
+- the middle mouse button shows a menu of all available actions, and
+- the right mouse button closes the notification.
+
+** Advanced Usage
+
+You can also
+retrieve currently active notifications with the function ~dnel-notifications~
 whenever the (abnormal) hook ~dnel-notifications-changed-functions~ runs.
+Functions in that hook are given access to the exact notification that changed.
 Read on for some suggestions.
 
-*** Use Case 1: Show Active Notifications
+*** Show Active Notifications
 
-Simply showing all active notifications in the mode-line can be accomplished by
-defining a function that returns the notifications as a string:
+To simply display all active notifications in the mode-line,
+first define a function that returns active notifications as a string:
 #+NAME: list
 #+BEGIN_SRC emacs-lisp :tangle yes
 (defun list-notifications ()
   (mapconcat #'dnel-format-notification (dnel-notifications) ""))
 #+END_SRC
 
-The function is called from the mode line for every change to the notifications:
-#+BEGIN_SRC emacs-lisp
-(nconc global-mode-string '((:eval (list-notifications))))
-(add-hook 'dnel-notifications-changed-functions (lambda (&rest _)
-                                                  (force-mode-line-update t)))
-#+END_SRC
-
-Every notification has text properties so that
-- hovering over its summary displays the body as a tooltip,
-- the left mouse button invokes the notification's default action,
-- the middle mouse button shows a menu of all available actions, and
-- the right mouse button closes the notification.
-
-*** Use Case 2: Stack Active Notifications by Application
-
-Instead of showing all notifications, it is possible to only display the newest
-notification per application by defining an appropriate function:
+Alternatively, only include the newest notification per application:
 #+NAME: stack
 #+BEGIN_SRC emacs-lisp :tangle yes
 (defun stack-notifications (&optional hide)
@@ -61,10 +59,10 @@ notification per application by defining an appropriate function:
              (dnel-notifications) ""))
 #+END_SRC
 
-It is called exactly the same as the function in the previous case:
+Use the respective function's result as part of your mode-line
+every time a new notification appears, or an old one is removed:
 #+BEGIN_SRC emacs-lisp
-(nconc global-mode-string '((:eval (stack-notifications))))
+(nconc global-mode-string '((:eval (stack-notifications))))  ; or list
 (add-hook 'dnel-notifications-changed-functions (lambda (&rest _)
                                                   (force-mode-line-update t)))
 #+END_SRC
-
