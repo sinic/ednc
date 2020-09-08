@@ -118,7 +118,7 @@ If FULL is nil, link to the log, otherwise include a menu for actions."
                          (dnel-invoke-action notification)))
            ,(if full `(down-mouse-2 . ,(dnel--get-actions-keymap notification))
               `(mouse-2 . ,(lambda () (interactive)
-                             (dnel--pop-to-log-buffer notification))))
+                             (dnel-pop-to-log-buffer notification))))
            (mouse-3 . ,(lambda () (interactive)
                          (dnel-close-notification notification))))))
     (propertize summary 'mouse-face 'mode-line-highlight 'local-map
@@ -289,7 +289,7 @@ If REMOVEP is nil, NOTIFICATION was added, otherwise it was removed."
       (if buffer (save-excursion
                    (dnel--update-log notification removep))))))
 
-(defun dnel--pop-to-log-buffer (&optional notification)
+(defun dnel-pop-to-log-buffer (&optional notification)
   "Pop to log buffer and (optionally) move point to NOTIFICATION."
   (let ((buffer (get-buffer dnel--log-name))
         (position (if notification
