@@ -101,12 +101,14 @@ If FULL is non-nil, include details, possibly across multiple lines."
   (let* ((hints (dnel-notification-hints notification))
          (urgency (or (dnel--get-hint hints "urgency") 1))
          (inherit (if (<= urgency 0) 'shadow (if (>= urgency 2) 'bold))))
-    (format (propertize " %s[%s: %s]%s" 'face (list :inherit inherit))
-            (propertize " " 'display (dnel-notification-image notification))
-            (dnel-notification-app-name notification)
-            (dnel--format-summary notification full)
-            (if full (concat "\n" (dnel-notification-body notification) "\n")
-              ""))))
+    (propertize
+     (format (propertize " %s[%s: %s]%s" 'face (list :inherit inherit))
+             (propertize " " 'display (dnel-notification-image notification))
+             (dnel-notification-app-name notification)
+             (dnel--format-summary notification full)
+             (if full (concat "\n" (dnel-notification-body notification) "\n")
+               ""))
+     'dnel-notification notification)))
 
 (defun dnel--format-summary (notification &optional full)
   "Return propertized summary of NOTIFICATION.
