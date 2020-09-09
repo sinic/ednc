@@ -73,6 +73,7 @@ active notifications, newest first.")
   "Invoke ACTION of the NOTIFICATION.
 
 ACTION defaults to the key \"default\"."
+  (interactive (list (get-text-property (point) 'dnel-notification)))
   (dnel--dbus-talk-to (dnel-notification-client notification) 'send-signal
                       'ActionInvoked (dnel-notification-id notification)
                       (or action "default")))
@@ -81,6 +82,7 @@ ACTION defaults to the key \"default\"."
   "Close the NOTIFICATION for REASON.
 
 REASON defaults to 2 (i.e., dismissed by user)."
+  (interactive (list (get-text-property (point) 'dnel-notification)))
   (dnel--delete-notification notification)
   (run-hook-with-args 'dnel-notifications-changed-functions notification t)
   (dnel--dbus-talk-to (dnel-notification-client notification) 'send-signal
