@@ -245,6 +245,7 @@ This function is destructive."
 (defun dnel--delete-notification (notification)
   "Delete NOTIFICATION from parent state and return it."
   (let ((suffix (dnel-notification-pop-suffix notification)))
+    (setf (dnel-notification-pop-suffix notification) nil)
     (let ((timer (dnel-notification-timer notification)))
       (if timer (cancel-timer timer)))
     (let ((next (caddr suffix)))
