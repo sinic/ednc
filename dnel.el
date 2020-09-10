@@ -89,10 +89,10 @@ ACTION defaults to the key \"default\"."
 
 (defun dnel--close-notification-by-id (id)
   "Close the notification identified by ID."
-  (let ((found (cl-find id (cdr dnel--state) :test #'eq
-                        :key #'dnel-notification-id)))
-    (if found (dnel--close-notification found 3)
-      (signal 'dbus-error ()))) :ignore)
+  (let ((found (cl-find id (cdr dnel--state)
+                        :test #'eq :key #'dnel-notification-id)))
+    (if found (dnel--close-notification found 3) (signal 'dbus-error nil)))
+  :ignore)
 
 (defun dnel--close-notification (notification reason)
   "Close the NOTIFICATION for REASON."
