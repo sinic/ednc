@@ -65,6 +65,14 @@ This object is currently implemented as a cons cell: its car is the
 count of distinct IDs assigned so far, its cdr is a list of currently
 active notifications, newest first.")
 
+(defvar dnel-log-map
+  (let ((map (make-sparse-keymap)))
+    (set-keymap-parent map special-mode-map)
+    (define-key map (kbd "RET") #'dnel-invoke-action)
+    (define-key map "d" #'dnel-dismiss-notification)
+    map)
+  "Keymap for the DNel log buffer.")
+
 (defun dnel-notifications ()
   "Return currently active notifications."
   (cdr dnel--state))
@@ -282,6 +290,7 @@ REST contains the remaining arguments to that function."
      (let ((inhibit-read-only t))
        (unless ,buffer
          (special-mode)
+         (use-local-map dnel-log-map)
          (save-excursion
            (dolist (notification (reverse (cdr dnel--state)))
              (setf (dnel-notification-log-position notification) (point))
