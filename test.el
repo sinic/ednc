@@ -271,14 +271,15 @@ bar baz
 ;; Test handler of Notify:
 (ert-deftest dnel--handle-notify-test ()
   (dnel--with-temp-server
-    (let ((id (apply #'dnel--dbus-talk 'call-method 'Notify (dnel--get-test-args))))
+    (let ((id (apply #'dnel--dbus-talk 'dbus-call-method "Notify"
+                     (dnel--get-test-args))))
       (dnel--test-args-match id (dnel--get-test-args)))))
 
 (ert-deftest dnel--handle-notify-with-expiration-time-test ()
   (dnel--with-temp-server
     (let* ((timeout 5)
            (args (dnel--get-test-args `(expire-timeout . ,timeout)))
-           (id (apply #'dnel--dbus-talk 'call-method 'Notify args)))
+           (id (apply #'dnel--dbus-talk 'dbus-call-method "Notify" args)))
       (dnel--test-args-match id args)
       (sleep-for (/ (* 2 timeout) 1000.0))
       (should-not (cl-find id (cdr dnel--state) :key #'dnel-notification-id)))))
@@ -287,7 +288,7 @@ bar baz
   (dnel--with-temp-server
     (let* ((id (apply #'dnel--notify (dnel--get-test-args)))
            (args (dnel--get-test-args `(replaces-id . ,id))))
-      (apply #'dnel--dbus-talk 'call-method 'Notify args)
+      (apply #'dnel--dbus-talk 'dbus-call-method "Notify" args)
       (dnel--test-args-match id args))))
 
 (ert-deftest dnel--handle-notify-replace-nonexistent-test ()
@@ -295,38 +296,40 @@ bar baz
     (let* ((id (apply #'dnel--notify (dnel--get-test-args)))
            (args (dnel--get-test-args `(replaces-id . ,(+ 5 id)))))
       (dnel--test-args-match id (dnel--get-test-args))
-      (setq id (apply #'dnel--dbus-talk 'call-method 'Notify args))
+      (setq id (apply #'dnel--dbus-talk 'dbus-call-method "Notify" args))
       (dnel--test-args-match id (dnel--get-test-args)))))
 
 ;; Test handler of CloseNotification:
 (ert-deftest dnel--handle-close-notification-test ()
   (dnel--with-temp-server
     (let ((id (apply #'dnel--notify (dnel--get-test-args))))
-      (dnel--dbus-talk 'call-method 'CloseNotification id)
+      (dnel--dbus-talk 'dbus-call-method "CloseNotification" id)
       (should-not (cl-find id (cdr dnel--state) :key #'dnel-notification-id)))))
 
 (ert-deftest dnel--handle-close-previously-closed-notification-test ()
   (dnel--with-temp-server
     (let ((id (apply #'dnel--notify (dnel--get-test-args))))
-      (dnel--dbus-talk 'call-method 'CloseNotification id)
-      (should-error (dnel--dbus-talk 'call-method 'CloseNotification id)))))
+      (dnel--dbus-talk 'dbus-call-method "CloseNotification" id)
+      (should-error (dnel--dbus-talk 'dbus-call-method "CloseNotification"
+                                     id)))))
 
 (ert-deftest dnel--handle-close-nonexistent-notification-test ()
   (dnel--with-temp-server
     (let ((unused (1+ (apply #'dnel--notify (dnel--get-test-args)))))
-      (should-error (dnel--dbus-talk 'call-method 'CloseNotification unused)))))
+      (should-error (dnel--dbus-talk 'dbus-call-method "CloseNotification"
+                                     unused)))))
 
 ;; Test informational handlers:
 (ert-deftest dnel--handle-get-server-information-test ()
   (dnel--with-temp-server
-    (let ((info (dnel--dbus-talk 'call-method 'GetServerInformation)))
+    (let ((info (dnel--dbus-talk 'dbus-call-method "GetServerInformation")))
       (should (and (listp info) (= (length info) 4)))  ; correct aggregate type
       (dolist (field info)
         (should (stringp field))))))  ; and correct types in aggregate?
 
 (ert-deftest dnel--handle-get-capabilities-test ()
   (dnel--with-temp-server
-    (let ((capabilities (dnel--dbus-talk 'call-method 'GetCapabilities)))
+    (let ((capabilities (dnel--dbus-talk 'dbus-call-method "GetCapabilities")))
       (should (listp capabilities))  ; correct aggregate type?
       (dolist (capability capabilities)
         (should (stringp capability)))  ; correct types in aggregate,

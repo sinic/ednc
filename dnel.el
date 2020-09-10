@@ -76,8 +76,8 @@ ACTION defaults to the key \"default\"."
   (interactive (list (get-text-property (point) 'dnel-notification)))
   (unless (dnel-notification-pop-suffix notification)
     (user-error "Notification already closed"))
-  (dnel--dbus-talk-to (dnel-notification-client notification) 'send-signal
-                      'ActionInvoked (dnel-notification-id notification)
+  (dnel--dbus-talk-to (dnel-notification-client notification) 'dbus-send-signal
+                      "ActionInvoked" (dnel-notification-id notification)
                       (or action "default")))
 
 (defun dnel-close-notification (notification &optional reason)
@@ -89,8 +89,8 @@ REASON defaults to 2 (i.e., dismissed by user)."
     (user-error "Notification already closed"))
   (dnel--delete-notification notification)
   (run-hook-with-args 'dnel-notifications-changed-functions notification t)
-  (dnel--dbus-talk-to (dnel-notification-client notification) 'send-signal
-                      'NotificationClosed (dnel-notification-id notification)
+  (dnel--dbus-talk-to (dnel-notification-client notification) 'dbus-send-signal
+                      "NotificationClosed" (dnel-notification-id notification)
                       (or reason 2)))
 
 (defun dnel--close-notification-by-id (id)
@@ -147,12 +147,12 @@ If FULL is nil, link to the log, otherwise include a menu for actions."
 
 (defun dnel--start-server ()
   "Register server to keep track of notifications in `dnel--state'."
-  (dolist (args `((Notify ,#'dnel--notify t)
-                  (CloseNotification ,#'dnel--close-notification-by-id t)
-                  (GetServerInformation
+  (dolist (args `(("Notify" ,#'dnel--notify t)
+                  ("CloseNotification" ,#'dnel--close-notification-by-id t)
+                  ("GetServerInformation"
                    ,(lambda () (list "DNel" "sinic" "0.1" "1.2")) t)
-                  (GetCapabilities ,(lambda () '(("body" "actions"))) t)))
-    (apply #'dnel--dbus-talk 'register-method args))
+                  ("GetCapabilities" ,(lambda () '(("body" "actions"))) t)))
+    (apply #'dnel--dbus-talk 'dbus-register-method args))
   (dbus-register-service :session dnel--service))
 
 (defun dnel--stop-server ()
@@ -256,25 +256,22 @@ This function is destructive."
       (if next (setf (dnel-notification-pop-suffix next) suffix)))
     (pop (cdr suffix))))
 
-(defun dnel--dbus-talk-to (service suffix symbol &rest rest)
+(defun dnel--dbus-talk-to (service symbol &rest rest)
   "Help with most actions involving D-Bus service SERVICE.
 
 If SERVICE is nil, then a service name is derived from `last-input-event'.
 
-SUFFIX is the non-constant suffix of a D-Bus function (e.g., `call-method'),
-SYMBOL is named after the function's first argument (e.g., `GetServerInfo'),
+SYMBOL describes a D-Bus function (e.g., `dbus-call-method'),
 REST contains the remaining arguments to that function."
-  (let ((full (intern (concat "dbus-" (symbol-name suffix)))))
-    (apply full :session (or service (dbus-event-service-name last-input-event))
-           dnel--path dnel--interface (symbol-name symbol) rest)))
+  (apply symbol :session (or service (dbus-event-service-name last-input-event))
+         dnel--path dnel--interface rest))
 
-(defun dnel--dbus-talk (suffix symbol &rest rest)
+(defun dnel--dbus-talk (symbol &rest rest)
   "Help with most actions involving D-Bus service `dnel--service'.
 
-SUFFIX is the non-constant suffix of a D-Bus function (e.g., `call-method'),
-SYMBOL is named after the function's first argument (e.g., `GetServerInfo'),
+SYMBOL describes a D-Bus function (e.g., `dbus-call-method'),
 REST contains the remaining arguments to that function."
-  (apply #'dnel--dbus-talk-to dnel--service suffix symbol rest))
+  (apply #'dnel--dbus-talk-to dnel--service symbol rest))
 
 (defmacro dnel--with-log-buffer (&optional buffer &rest body)
   "Execute BODY with log BUFFER or with a newly initialized one."
