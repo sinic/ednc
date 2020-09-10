@@ -313,7 +313,7 @@ If REMOVEP is nil, NOTIFICATION was added, otherwise it was removed."
 If REMOVEP is nil, NOTIFICATION was added, otherwise it was removed."
   (let ((old (dnel-notification-log-position notification)))
     (if old (add-text-properties (goto-char old) (line-end-position)
-                                 '(face (:strike-through t) local-map ()))))
+                                 '(face (:strike-through t)))))
   (unless removep
     (setf (dnel-notification-log-position notification) (goto-char (point-max)))
     (insert (dnel-format-notification notification t) ?\n)))
