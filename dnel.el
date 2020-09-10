@@ -80,25 +80,27 @@ ACTION defaults to the key \"default\"."
                       "ActionInvoked" (dnel-notification-id notification)
                       (or action "default")))
 
-(defun dnel-close-notification (notification &optional reason)
-  "Close the NOTIFICATION for REASON.
-
-REASON defaults to 2 (i.e., dismissed by user)."
+(defun dnel-dismiss-notification (notification)
+  "Dismiss the NOTIFICATION."
   (interactive (list (get-text-property (point) 'dnel-notification)))
   (unless (dnel-notification-pop-suffix notification)
     (user-error "Notification already closed"))
-  (dnel--delete-notification notification)
-  (run-hook-with-args 'dnel-notifications-changed-functions notification t)
-  (dnel--dbus-talk-to (dnel-notification-client notification) 'dbus-send-signal
-                      "NotificationClosed" (dnel-notification-id notification)
-                      (or reason 2)))
+  (dnel--close-notification notification 2))
 
 (defun dnel--close-notification-by-id (id)
   "Close the notification identified by ID."
   (let ((found (cl-find id (cdr dnel--state) :test #'eq
                         :key #'dnel-notification-id)))
-    (if found (dnel-close-notification found 3)
+    (if found (dnel--close-notification found 3)
       (signal 'dbus-error ()))) :ignore)
+
+(defun dnel--close-notification (notification reason)
+  "Close the NOTIFICATION for REASON."
+  (dnel--delete-notification notification)
+  (run-hook-with-args 'dnel-notifications-changed-functions notification t)
+  (dnel--dbus-talk-to (dnel-notification-client notification) 'dbus-send-signal
+                      "NotificationClosed" (dnel-notification-id notification)
+                      reason))
 
 (defun dnel-format-notification (notification &optional full)
   "Return propertized description of NOTIFICATION.
@@ -128,7 +130,7 @@ If FULL is nil, link to the log, otherwise include a menu for actions."
               `(mouse-2 . ,(lambda () (interactive)
                              (dnel-pop-to-log-buffer notification))))
            (mouse-3 . ,(lambda () (interactive)
-                         (dnel-close-notification notification))))))
+                         (dnel-dismiss-notification notification))))))
     (propertize summary 'mouse-face 'mode-line-highlight 'local-map
                 `(keymap (header-line keymap . ,controls)
                          (mode-line keymap . ,controls) . ,controls))))
@@ -156,8 +158,8 @@ If FULL is nil, link to the log, otherwise include a menu for actions."
   (dbus-register-service :session dnel--service))
 
 (defun dnel--stop-server ()
-  "Close all notifications, then unregister server."
-  (mapc #'dnel-close-notification (cdr dnel--state))
+  "Dismiss all notifications, then unregister server."
+  (mapc #'dnel-dismiss-notification (cdr dnel--state))
   (dbus-unregister-service :session dnel--service))
 
 (defun dnel--notify (app-name replaces-id app-icon summary body actions
@@ -179,7 +181,7 @@ are the received values as described in the Desktop Notification standard."
     (if (> expire-timeout 0)
         (setf (dnel-notification-timer new)
               (run-at-time (/ expire-timeout 1000.0) nil
-                           #'dnel-close-notification new 1)))
+                           #'dnel--close-notification new 1)))
     (dnel--push-notification new)
     (run-hook-with-args 'dnel-notifications-changed-functions new)
     (dnel-notification-id new)))

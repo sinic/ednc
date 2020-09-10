@@ -200,7 +200,7 @@ bar baz
         (dnel--update-log notification)
         (apply #'dnel--notify (dnel--get-test-args '(app-name . "tes1")))
         (dnel--update-log (cadr dnel--state))
-        (dnel-close-notification (cadr dnel--state) 3)
+        (dnel--close-notification (cadr dnel--state) 3)
         (dnel--update-log notification t)
         (should (string-equal (buffer-string) "  [test: foo]
 bar baz
@@ -221,11 +221,11 @@ bar baz
     (apply #'dnel--notify (dnel--get-test-args))
     (dnel-invoke-action (cadr dnel--state) "other")))  ; no real test yet
 
-;; Test dnel-close-notification:
+;; Test dnel--close-notification:
 (ert-deftest dnel--close-notification-test ()
   (dnel--with-temp-server
     (let ((id (apply #'dnel--notify (dnel--get-test-args))))
-      (dnel-close-notification (cadr dnel--state) 3)
+      (dnel--close-notification (cadr dnel--state) 3)
       (should-not (cl-find id (cdr dnel--state) :key #'dnel-notification-id)))))
 
 ;; Test dnel--format-notification:
