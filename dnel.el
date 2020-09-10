@@ -139,7 +139,7 @@ If FULL is nil, link to the log, otherwise include a menu for actions."
                              (dnel-pop-to-log-buffer notification))))
            (mouse-3 . ,(lambda () (interactive)
                          (dnel-dismiss-notification notification))))))
-    (propertize summary 'mouse-face 'mode-line-highlight 'local-map
+    (propertize summary 'mouse-face 'mode-line-highlight 'keymap
                 `(keymap (header-line keymap . ,controls)
                          (mode-line keymap . ,controls) . ,controls))))
 
