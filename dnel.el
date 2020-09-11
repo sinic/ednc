@@ -55,8 +55,8 @@
 (defvar dnel-notifications-changed-functions #'dnel--update-log-buffer
   "Functions in this list are called on changes to notifications.
 
-Their arguments are the changed notification, and an optional flag.
-The notification was added if the flag is nil, or removed otherwise.")
+Their arguments are the removed notification, if any,
+followed by the newly added notification, if any.")
 
 (defvar dnel--state (list 0)
   "The minor mode tracks all active desktop notifications here.
@@ -105,7 +105,7 @@ ACTION defaults to the key \"default\"."
 (defun dnel--close-notification (notification reason)
   "Close the NOTIFICATION for REASON."
   (dnel--delete-notification notification)
-  (run-hook-with-args 'dnel-notifications-changed-functions notification t)
+  (run-hook-with-args 'dnel-notifications-changed-functions notification nil)
   (dnel--dbus-talk-to (dnel-notification-client notification) 'dbus-send-signal
                       "NotificationClosed" (dnel-notification-id notification)
                       reason))
@@ -176,22 +176,21 @@ If FULL is nil, link to the log, otherwise include a menu for actions."
 
 APP-NAME, REPLACES-ID, APP-ICON, SUMMARY, BODY, ACTIONS, HINTS, EXPIRE-TIMEOUT
 are the received values as described in the Desktop Notification standard."
-  (let ((new (dnel--notification-create
-              :app-name app-name :summary summary :body body :actions actions
-              :image (dnel--get-image hints app-icon) :hints hints
-              :client (dbus-event-service-name last-input-event))))
-    (setf (dnel-notification-id new)
-          (or (unless (zerop replaces-id)
-                (let ((found (cl-find replaces-id (cdr dnel--state) :test #'eq
-                                      :key #'dnel-notification-id)))
-                  (when found (dnel--delete-notification found) replaces-id)))
-              (cl-incf (car dnel--state))))
+  (let* ((old (if (> replaces-id 0)
+                  (cl-find replaces-id (cdr dnel--state)
+                           :test #'eq :key #'dnel-notification-id)))
+         (new (dnel--notification-create
+               :id (if old replaces-id (cl-incf (car dnel--state)))
+               :app-name app-name :summary summary :body body :actions actions
+               :image (dnel--get-image hints app-icon) :hints hints
+               :client (dbus-event-service-name last-input-event))))
     (if (> expire-timeout 0)
         (setf (dnel-notification-timer new)
               (run-at-time (/ expire-timeout 1000.0) nil
                            #'dnel--close-notification new 1)))
+    (if old (dnel--delete-notification old))
     (dnel--push-notification new)
-    (run-hook-with-args 'dnel-notifications-changed-functions new)
+    (run-hook-with-args 'dnel-notifications-changed-functions old new)
     (dnel-notification-id new)))
 
 (defun dnel--get-image (hints app-icon)
@@ -297,14 +296,11 @@ REST contains the remaining arguments to that function."
              (insert (dnel-format-notification notification t) ?\n))))
        ,@body)))
 
-(defun dnel--update-log-buffer (notification &optional removep)
-  "Update log buffer to reflect new status of NOTIFICATION.
-
-If REMOVEP is nil, NOTIFICATION was added, otherwise it was removed."
+(defun dnel--update-log-buffer (old new)
+  "Remove OLD notification from and add NEW one to log buffer."
   (let ((buffer (get-buffer dnel--log-name)))
     (dnel--with-log-buffer buffer
-      (if buffer (save-excursion
-                   (dnel--update-log notification removep))))))
+      (if buffer (save-excursion (dnel--update-log old new))))))
 
 (defun dnel-pop-to-log-buffer (&optional notification)
   "Pop to log buffer and (optionally) move point to NOTIFICATION."
@@ -315,16 +311,13 @@ If REMOVEP is nil, NOTIFICATION was added, otherwise it was removed."
       (pop-to-buffer (current-buffer))
       (if position (goto-char position)))))
 
-(defun dnel--update-log (notification &optional removep)
-  "Update current buffer to reflect new status of NOTIFICATION.
-
-If REMOVEP is nil, NOTIFICATION was added, otherwise it was removed."
-  (let ((old (dnel-notification-log-position notification)))
-    (if old (add-text-properties (goto-char old) (line-end-position)
-                                 '(face (:strike-through t)))))
-  (unless removep
-    (setf (dnel-notification-log-position notification) (goto-char (point-max)))
-    (insert (dnel-format-notification notification t) ?\n)))
+(defun dnel--update-log (old new)
+  "Remove OLD notification from and add NEW one to current buffer."
+  (if old (add-text-properties (goto-char (dnel-notification-log-position old))
+                               (line-end-position) '(face (:strike-through t))))
+  (when new
+    (setf (dnel-notification-log-position new) (goto-char (point-max)))
+    (insert (dnel-format-notification new t) ?\n)))
 
 (provide 'dnel)
 ;;; dnel.el ends here

@@ -170,7 +170,7 @@
   (dnel--with-temp-server
     (apply #'dnel--notify (dnel--get-test-args))
     (with-temp-buffer
-      (dnel--update-log (cadr dnel--state))
+      (dnel--update-log nil (cadr dnel--state))
       (should (string-equal (buffer-string) "  [test: foo]
 bar baz
 
@@ -180,9 +180,9 @@ bar baz
     (dnel--with-temp-server
       (apply #'dnel--notify (dnel--get-test-args))
       (with-temp-buffer
-        (dnel--update-log (cadr dnel--state))
+        (dnel--update-log nil (cadr dnel--state))
         (apply #'dnel--notify (dnel--get-test-args '(app-name . "tes1")))
-        (dnel--update-log (cadr dnel--state))
+        (dnel--update-log nil (cadr dnel--state))
         (should (string-equal (buffer-string) "  [test: foo]
 bar baz
 
@@ -197,18 +197,39 @@ bar baz
            (notification (cl-find id (cdr dnel--state)
                                   :key #'dnel-notification-id)))
       (with-temp-buffer
-        (dnel--update-log notification)
+        (dnel--update-log nil notification)
         (apply #'dnel--notify (dnel--get-test-args '(app-name . "tes1")))
-        (dnel--update-log (cadr dnel--state))
+        (dnel--update-log nil (cadr dnel--state))
         (dnel--close-notification (cadr dnel--state) 3)
-        (dnel--update-log notification t)
+        (dnel--update-log notification nil)
         (should (string-equal (buffer-string) "  [test: foo]
 bar baz
 
   [tes1: foo]
 bar baz
 
-"))))))
+"))
+        (should (equal (get-text-property (point-min) 'face)
+                       '(:strike-through t)))))))
+
+(ert-deftest dnel--log-replaced-notifications-test ()
+  (dnel--with-temp-server
+    (let* ((id (apply #'dnel--notify (dnel--get-test-args)))
+           (notification (cl-find id (cdr dnel--state)
+                                  :key #'dnel-notification-id)))
+      (with-temp-buffer
+        (dnel--update-log nil notification)
+        (apply #'dnel--notify (dnel--get-test-args `(replaces-id . ,id)))
+        (dnel--update-log notification (cadr dnel--state))
+        (should (string-equal (buffer-string) "  [test: foo]
+bar baz
+
+  [test: foo]
+bar baz
+
+"))
+        (should (equal (get-text-property (point-min) 'face)
+                       '(:strike-through t)))))))
 
 ;; Test dnel-invoke-action:
 (ert-deftest dnel--invoke-default-action-test ()
