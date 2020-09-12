@@ -145,15 +145,13 @@ If FULL is nil, link to the log, otherwise include a menu for actions."
 
 (defun dnel--get-actions-keymap (notification)
   "Return keymap for actions of NOTIFICATION."
-  (let ((actions (dnel-notification-actions notification))
-        (result (list 'keymap)))
-    (dotimes (i (/ (length actions) 2))
-      (let ((key (pop actions)))
-        (push (list i 'menu-item (pop actions)
-                    (lambda () (interactive)
-                      (dnel-invoke-action notification key)))
-              result)))
-    (reverse (cons "Actions" result))))
+  (cl-loop with in = (dnel-notification-actions notification) and out for i by 1
+           while in do (push (let ((key (pop in)))
+                               (list i 'menu-item (pop in)
+                                     (lambda () (interactive)
+                                       (dnel-invoke-action notification key))))
+                             out)
+           finally return (cons 'keymap (nreverse (cons "Actions" out)))))
 
 (defun dnel--start-server ()
   "Register server to keep track of notifications in `dnel--state'."
