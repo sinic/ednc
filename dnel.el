@@ -82,8 +82,8 @@ active notifications, newest first.")
 
 ACTION defaults to the key \"default\"."
   (interactive (list (get-text-property (point) 'dnel-notification)))
-  (unless (dnel-notification-pop-suffix notification)
-    (user-error "Notification already closed"))
+  (unless (and notification (dnel-notification-pop-suffix notification))
+    (user-error "No active notification at point"))
   (dnel--dbus-talk-to (dnel-notification-client notification) 'dbus-send-signal
                       "ActionInvoked" (dnel-notification-id notification)
                       (or action "default")))
@@ -91,8 +91,8 @@ ACTION defaults to the key \"default\"."
 (defun dnel-dismiss-notification (notification)
   "Dismiss the NOTIFICATION."
   (interactive (list (get-text-property (point) 'dnel-notification)))
-  (unless (dnel-notification-pop-suffix notification)
-    (user-error "Notification already closed"))
+  (unless (and notification (dnel-notification-pop-suffix notification))
+    (user-error "No active notification at point"))
   (dnel--close-notification notification 2))
 
 (defun dnel--close-notification-by-id (id)
