@@ -69,6 +69,7 @@ active notifications, newest first.")
   (let ((map (make-sparse-keymap)))
     (set-keymap-parent map special-mode-map)
     (define-key map (kbd "RET") #'dnel-invoke-action)
+    (define-key map (kbd "TAB") #'dnel-toggle-body-visibility)
     (define-key map "d" #'dnel-dismiss-notification)
     map)
   "Keymap for the DNel log buffer.")
@@ -95,6 +96,20 @@ ACTION defaults to the key \"default\"."
     (user-error "No active notification at point"))
   (dnel--close-notification notification 2))
 
+(defun dnel-toggle-body-visibility (position)
+  "Toggle visibility of the body of notification at POSITION."
+  (interactive "d")
+  (let ((prop 'dnel-notification))
+    (unless (or (get-text-property position prop)
+                (if (> position 1) (get-text-property (cl-decf position) prop)))
+      (user-error "No notification at or before position"))
+    (let* ((end (or (next-single-property-change position prop) (point-max)))
+           (begin (or (previous-single-property-change end prop) (point-min)))
+           (eol (save-excursion (goto-char begin) (line-end-position)))
+           (inhibit-read-only t))
+      (put-text-property eol end 'invisible
+                         (not (get-text-property eol 'invisible))))))
+
 (defun dnel--close-notification-by-id (id)
   "Close the notification identified by ID."
   (let ((found (cl-find id (cdr dnel--state)
@@ -110,35 +125,29 @@ ACTION defaults to the key \"default\"."
                       "NotificationClosed" (dnel-notification-id notification)
                       reason))
 
-(defun dnel-format-notification (notification &optional full)
-  "Return propertized description of NOTIFICATION.
-
-If FULL is non-nil, include details, possibly across multiple lines."
+(defun dnel-format-notification (notification)
+  "Return propertized description of NOTIFICATION."
   (let* ((hints (dnel-notification-hints notification))
          (urgency (or (dnel--get-hint hints "urgency") 1))
          (inherit (if (<= urgency 0) 'shadow (if (>= urgency 2) 'bold))))
-    (propertize
-     (format (propertize " %s[%s: %s]%s" 'face (list :inherit inherit))
-             (propertize " " 'display (dnel-notification-image notification))
-             (dnel-notification-app-name notification)
-             (dnel--format-summary notification full)
-             (if full (concat "\n" (dnel-notification-body notification) "\n")
-               ""))
-     'dnel-notification notification)))
+    (format (propertize " %s[%s: %s]%s" 'face (list :inherit inherit)
+                        'dnel-notification notification)
+            (propertize " " 'display (dnel-notification-image notification))
+            (dnel-notification-app-name notification)
+            (dnel--format-summary notification)
+            (propertize (concat "\n" (dnel-notification-body notification) "\n")
+                        'invisible t))))
 
-(defun dnel--format-summary (notification &optional full)
-  "Return propertized summary of NOTIFICATION.
-
-If FULL is nil, link to the log, otherwise include a menu for actions."
+(defun dnel--format-summary (notification)
+  "Return propertized summary of NOTIFICATION."
   (let ((summary (dnel-notification-summary notification))
-        (controls
-         `((mouse-1 . ,(lambda () (interactive)
-                         (dnel-invoke-action notification)))
-           ,(if full `(down-mouse-2 . ,(dnel--get-actions-keymap notification))
-              `(mouse-2 . ,(lambda () (interactive)
-                             (dnel-pop-to-log-buffer notification))))
-           (mouse-3 . ,(lambda () (interactive)
-                         (dnel-dismiss-notification notification))))))
+        (controls `((mouse-1 . ,(lambda () (interactive)
+                                  (dnel-invoke-action notification)))
+                    (C-mouse-1 . ,(lambda () (interactive)
+                                    (dnel-pop-to-log-buffer notification)))
+                    (down-mouse-2 . ,(dnel--get-actions-keymap notification))
+                    (mouse-3 . ,(lambda () (interactive)
+                                  (dnel-dismiss-notification notification))))))
     (propertize summary 'mouse-face 'mode-line-highlight 'keymap
                 `(keymap (header-line keymap . ,controls)
                          (mode-line keymap . ,controls) . ,controls))))
@@ -291,7 +300,7 @@ REST contains the remaining arguments to that function."
          (save-excursion
            (dolist (notification (reverse (cdr dnel--state)))
              (setf (dnel-notification-log-position notification) (point))
-             (insert (dnel-format-notification notification t) ?\n))))
+             (insert (dnel-format-notification notification) ?\n))))
        ,@body)))
 
 (defun dnel--update-log-buffer (old new)
@@ -307,7 +316,7 @@ REST contains the remaining arguments to that function."
                       (dnel-notification-log-position notification))))
     (dnel--with-log-buffer buffer
       (pop-to-buffer (current-buffer))
-      (if position (goto-char position)))))
+      (if position (dnel-toggle-body-visibility (goto-char position))))))
 
 (defun dnel--update-log (old new)
   "Remove OLD notification from and add NEW one to current buffer."
@@ -315,7 +324,7 @@ REST contains the remaining arguments to that function."
                                (line-end-position) '(face (:strike-through t))))
   (when new
     (setf (dnel-notification-log-position new) (goto-char (point-max)))
-    (insert (dnel-format-notification new t) ?\n)))
+    (insert (dnel-format-notification new) ?\n)))
 
 (provide 'dnel)
 ;;; dnel.el ends here

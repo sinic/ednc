@@ -130,13 +130,19 @@
 (ert-deftest dnel--list-single-notification-test ()
   (dnel--with-temp-server
     (apply #'dnel--notify (dnel--get-test-args))
-    (should (string-equal (list-notifications) "  [test: foo]"))))
+    (should (string-equal (list-notifications) "  [test: foo]
+bar baz
+"))))
 
 (ert-deftest dnel--list-multiple-notifications-test ()
   (dnel--with-temp-server
     (apply #'dnel--notify (dnel--get-test-args))
     (apply #'dnel--notify (dnel--get-test-args '(app-name . "tes1")))
-    (should (string-equal (list-notifications) "  [tes1: foo]  [test: foo]"))))
+    (should (string-equal (list-notifications) "  [tes1: foo]
+bar baz
+  [test: foo]
+bar baz
+"))))
 
 ;; Test use case 2:
 (ert-deftest dnel--stack-no-notifications-test ()
@@ -151,19 +157,27 @@
 (ert-deftest dnel--stack-for-single-notification-test ()
   (dnel--with-temp-server
     (apply #'dnel--notify (dnel--get-test-args))
-    (should (string-equal (stack-notifications) "  [test: foo]"))))
+    (should (string-equal (stack-notifications) "  [test: foo]
+bar baz
+"))))
 
 (ert-deftest dnel--stack-non-stacking-notifications-test ()
   (dnel--with-temp-server
     (apply #'dnel--notify (dnel--get-test-args))
     (apply #'dnel--notify (dnel--get-test-args '(app-name . "tes1")))
-    (should (string-equal (stack-notifications) "  [tes1: foo]  [test: foo]"))))
+    (should (string-equal (stack-notifications) "  [tes1: foo]
+bar baz
+  [test: foo]
+bar baz
+"))))
 
 (ert-deftest dnel--stack-stacking-notifications-test ()
   (dnel--with-temp-server
     (apply #'dnel--notify (dnel--get-test-args))
     (apply #'dnel--notify (dnel--get-test-args '(summary . "bar")))
-    (should (string-equal (stack-notifications) "  [test: bar]"))))
+    (should (string-equal (stack-notifications) "  [test: bar]
+bar baz
+"))))
 
 ;; Test logging:
 (ert-deftest dnel--log-single-notification-test ()
@@ -254,7 +268,9 @@ bar baz
   (dnel--with-temp-server
     (apply #'dnel--notify (dnel--get-test-args))
     (should (string-equal (dnel-format-notification (cadr dnel--state))
-                          "  [test: foo]"))))
+                          "  [test: foo]
+bar baz
+"))))
 
 ;; Test dnel--format-summary:
 (ert-deftest dnel--format-summary-test ()
