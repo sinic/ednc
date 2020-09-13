@@ -35,7 +35,7 @@
 (require 'cl-lib)
 (require 'dbus)
 
-(defconst dnel--log-name "*dnel-log*")
+(defconst dnel-log-name "*dnel-log*")
 
 (defconst dnel--path "/org/freedesktop/Notifications")
 (defconst dnel--service (subst-char-in-string ?/ ?. (substring dnel--path 1)))
@@ -303,17 +303,17 @@ REST contains the remaining arguments to that function."
 
 (defun dnel--update-log-buffer (old new)
   "Remove OLD notification from and add NEW one to log buffer."
-  (let ((buffer (get-buffer dnel--log-name)))
-    (with-current-buffer (or buffer (dnel-generate-log-buffer dnel--log-name))
+  (let ((buffer (get-buffer dnel-log-name)))
+    (with-current-buffer (or buffer (dnel-generate-log-buffer dnel-log-name))
       (let ((inhibit-read-only t))
         (if buffer (save-excursion (dnel--update-log old new)))))))
 
 (defun dnel-pop-to-log-buffer (&optional notification)
   "Pop to log buffer and (optionally) move point to NOTIFICATION."
-  (let ((buffer (get-buffer dnel--log-name))
+  (let ((buffer (get-buffer dnel-log-name))
         (position (if notification
                       (dnel-notification-log-position notification))))
-    (pop-to-buffer (or buffer (dnel-generate-log-buffer dnel--log-name)))
+    (pop-to-buffer (or buffer (dnel-generate-log-buffer dnel-log-name)))
     (if position (dnel-toggle-body-visibility (goto-char position)))))
 
 (defun dnel--update-log (old new)
