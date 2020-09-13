@@ -22,13 +22,16 @@
 ;; Helpers for testing:
 (defmacro dnel--with-temp-server (&rest body)
   (declare (indent defun))
-  `(let ((dnel-notifications-changed-functions)
+  `(let ((dnel-log-name "*dnel-test-log*")
+         (dnel-notifications-changed-functions)
          (dnel--state (list 0)))
      (skip-unless (not dnel-mode))  ; conflicting servers?
      (dnel--start-server)
      ,@body
      (dnel--test-state-consistency)
-     (dnel--stop-server)))
+     (dnel--stop-server)
+     (if (get-buffer dnel-log-name)
+         (kill-buffer dnel-log-name))))
 
 (defconst dnel--default-test-alist
   '((app-name . "test") (replaces-id . 0) (app-icon) (summary . "foo")
@@ -183,8 +186,8 @@ bar baz
 (ert-deftest dnel--log-single-notification-test ()
   (dnel--with-temp-server
     (apply #'dnel--notify (dnel--get-test-args))
-    (with-temp-buffer
-      (dnel--update-log nil (cadr dnel--state))
+    (dnel--update-log-buffer nil (cadr dnel--state))
+    (with-current-buffer dnel-log-name
       (should (string-equal (buffer-string) "  [test: foo]
 bar baz
 
@@ -193,10 +196,10 @@ bar baz
 (ert-deftest dnel--log-multiple-notifications-test ()
     (dnel--with-temp-server
       (apply #'dnel--notify (dnel--get-test-args))
-      (with-temp-buffer
-        (dnel--update-log nil (cadr dnel--state))
-        (apply #'dnel--notify (dnel--get-test-args '(app-name . "tes1")))
-        (dnel--update-log nil (cadr dnel--state))
+      (dnel--update-log-buffer nil (cadr dnel--state))
+      (apply #'dnel--notify (dnel--get-test-args '(app-name . "tes1")))
+      (dnel--update-log-buffer nil (cadr dnel--state))
+      (with-current-buffer dnel-log-name
         (should (string-equal (buffer-string) "  [test: foo]
 bar baz
 
@@ -210,12 +213,12 @@ bar baz
     (let* ((id (apply #'dnel--notify (dnel--get-test-args)))
            (notification (cl-find id (cdr dnel--state)
                                   :key #'dnel-notification-id)))
-      (with-temp-buffer
-        (dnel--update-log nil notification)
-        (apply #'dnel--notify (dnel--get-test-args '(app-name . "tes1")))
-        (dnel--update-log nil (cadr dnel--state))
-        (dnel--close-notification (cadr dnel--state) 3)
-        (dnel--update-log notification nil)
+      (dnel--update-log-buffer nil notification)
+      (apply #'dnel--notify (dnel--get-test-args '(app-name . "tes1")))
+      (dnel--update-log-buffer nil (cadr dnel--state))
+      (dnel--close-notification (cadr dnel--state) 3)
+      (dnel--update-log-buffer notification nil)
+      (with-current-buffer dnel-log-name
         (should (string-equal (buffer-string) "  [test: foo]
 bar baz
 
@@ -231,10 +234,10 @@ bar baz
     (let* ((id (apply #'dnel--notify (dnel--get-test-args)))
            (notification (cl-find id (cdr dnel--state)
                                   :key #'dnel-notification-id)))
-      (with-temp-buffer
-        (dnel--update-log nil notification)
-        (apply #'dnel--notify (dnel--get-test-args `(replaces-id . ,id)))
-        (dnel--update-log notification (cadr dnel--state))
+      (dnel--update-log-buffer nil notification)
+      (apply #'dnel--notify (dnel--get-test-args `(replaces-id . ,id)))
+      (dnel--update-log-buffer notification (cadr dnel--state))
+      (with-current-buffer dnel-log-name
         (should (string-equal (buffer-string) "  [test: foo]
 bar baz
 

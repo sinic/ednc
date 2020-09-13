@@ -308,18 +308,17 @@ REST contains the remaining arguments to that function."
 
 (defun dnel--update-log-buffer (old new)
   "Remove OLD notification from and add NEW one to log buffer."
-  (let ((buffer (get-buffer dnel-log-name)))
+  (let ((inhibit-read-only t)
+        (buffer (get-buffer dnel-log-name)))
     (with-current-buffer (or buffer (dnel-generate-log-buffer))
-      (let ((inhibit-read-only t))
-        (if buffer (save-excursion (dnel--update-log old new)))))))
-
-(defun dnel--update-log (old new)
-  "Remove OLD notification from and add NEW one to current buffer."
-  (if old (add-text-properties (goto-char (dnel-notification-log-position old))
-                               (line-end-position) '(face (:strike-through t))))
-  (when new
-    (setf (dnel-notification-log-position new) (goto-char (point-max)))
-    (insert (dnel-format-notification new) ?\n)))
+      (when buffer
+        (save-excursion
+          (if old (add-text-properties
+                   (goto-char (dnel-notification-log-position old))
+                   (line-end-position) '(face (:strike-through t))))
+          (when new
+            (setf (dnel-notification-log-position new) (goto-char (point-max)))
+            (insert (dnel-format-notification new) ?\n)))))))
 
 (provide 'dnel)
 ;;; dnel.el ends here
