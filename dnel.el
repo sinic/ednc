@@ -106,9 +106,9 @@ ACTION defaults to the key \"default\"."
     (let* ((end (or (next-single-property-change position prop) (point-max)))
            (begin (or (previous-single-property-change end prop) (point-min)))
            (eol (save-excursion (goto-char begin) (line-end-position)))
+           (current (get-text-property eol 'invisible))
            (inhibit-read-only t))
-      (put-text-property eol end 'invisible
-                         (not (get-text-property eol 'invisible))))))
+      (if (< eol end) (put-text-property eol end 'invisible (not current))))))
 
 (defun dnel--close-notification-by-id (id)
   "Close the notification identified by ID."
