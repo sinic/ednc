@@ -289,34 +289,32 @@ SYMBOL describes a D-Bus function (e.g., `dbus-call-method'),
 REST contains the remaining arguments to that function."
   (apply #'dnel--dbus-talk-to dnel--service symbol rest))
 
-(defmacro dnel--with-log-buffer (&optional buffer &rest body)
-  "Execute BODY with log BUFFER or with a newly initialized one."
-  (declare (indent 1))
-  `(with-current-buffer (or ,buffer (generate-new-buffer dnel--log-name))
-     (let ((inhibit-read-only t))
-       (unless ,buffer
-         (special-mode)
-         (use-local-map dnel-log-map)
-         (save-excursion
-           (dolist (notification (reverse (cdr dnel--state)))
-             (setf (dnel-notification-log-position notification) (point))
-             (insert (dnel-format-notification notification) ?\n))))
-       ,@body)))
+(defun dnel-generate-log-buffer (name)
+  "Return newly initialized log buffer named NAME."
+  (with-current-buffer (generate-new-buffer name)
+    (special-mode)
+    (use-local-map dnel-log-map)
+    (let ((inhibit-read-only t))
+      (save-excursion
+        (dolist (notification (reverse (cdr dnel--state)))
+          (setf (dnel-notification-log-position notification) (point))
+          (insert (dnel-format-notification notification) ?\n))))
+    (current-buffer)))
 
 (defun dnel--update-log-buffer (old new)
   "Remove OLD notification from and add NEW one to log buffer."
   (let ((buffer (get-buffer dnel--log-name)))
-    (dnel--with-log-buffer buffer
-      (if buffer (save-excursion (dnel--update-log old new))))))
+    (with-current-buffer (or buffer (dnel-generate-log-buffer dnel--log-name))
+      (let ((inhibit-read-only t))
+        (if buffer (save-excursion (dnel--update-log old new)))))))
 
 (defun dnel-pop-to-log-buffer (&optional notification)
   "Pop to log buffer and (optionally) move point to NOTIFICATION."
   (let ((buffer (get-buffer dnel--log-name))
         (position (if notification
                       (dnel-notification-log-position notification))))
-    (dnel--with-log-buffer buffer
-      (pop-to-buffer (current-buffer))
-      (if position (dnel-toggle-body-visibility (goto-char position))))))
+    (pop-to-buffer (or buffer (dnel-generate-log-buffer dnel--log-name)))
+    (if position (dnel-toggle-body-visibility (goto-char position)))))
 
 (defun dnel--update-log (old new)
   "Remove OLD notification from and add NEW one to current buffer."
