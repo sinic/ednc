@@ -141,13 +141,18 @@ ACTION defaults to the key \"default\"."
 (defun dnel--format-summary (notification)
   "Return propertized summary of NOTIFICATION."
   (let ((summary (dnel-notification-summary notification))
-        (controls `((mouse-1 . ,(lambda () (interactive)
-                                  (dnel-invoke-action notification)))
-                    (C-mouse-1 . ,(lambda () (interactive)
-                                    (dnel-pop-to-log-buffer notification)))
-                    (down-mouse-2 . ,(dnel--get-actions-keymap notification))
-                    (mouse-3 . ,(lambda () (interactive)
-                                  (dnel-dismiss-notification notification))))))
+        (controls
+         `((mouse-1 . ,(lambda () (interactive)
+                         (dnel-invoke-action notification)))
+           (C-mouse-1 . ,(lambda () (interactive)
+                           (pop-to-buffer (or (get-buffer dnel-log-name)
+                                              (dnel-generate-log-buffer)))
+                           (dnel-toggle-body-visibility
+                            (goto-char (dnel-notification-log-position
+                                        notification)))))
+           (down-mouse-2 . ,(dnel--get-actions-keymap notification))
+           (mouse-3 . ,(lambda () (interactive)
+                         (dnel-dismiss-notification notification))))))
     (propertize summary 'mouse-face 'mode-line-highlight 'keymap
                 `(keymap (header-line keymap . ,controls)
                          (mode-line keymap . ,controls) . ,controls))))
@@ -289,9 +294,9 @@ SYMBOL describes a D-Bus function (e.g., `dbus-call-method'),
 REST contains the remaining arguments to that function."
   (apply #'dnel--dbus-talk-to dnel--service symbol rest))
 
-(defun dnel-generate-log-buffer (name)
-  "Return newly initialized log buffer named NAME."
-  (with-current-buffer (generate-new-buffer name)
+(defun dnel-generate-log-buffer ()
+  "Return newly initialized log buffer."
+  (with-current-buffer (generate-new-buffer dnel-log-name)
     (special-mode)
     (use-local-map dnel-log-map)
     (let ((inhibit-read-only t))
@@ -304,17 +309,9 @@ REST contains the remaining arguments to that function."
 (defun dnel--update-log-buffer (old new)
   "Remove OLD notification from and add NEW one to log buffer."
   (let ((buffer (get-buffer dnel-log-name)))
-    (with-current-buffer (or buffer (dnel-generate-log-buffer dnel-log-name))
+    (with-current-buffer (or buffer (dnel-generate-log-buffer))
       (let ((inhibit-read-only t))
         (if buffer (save-excursion (dnel--update-log old new)))))))
-
-(defun dnel-pop-to-log-buffer (&optional notification)
-  "Pop to log buffer and (optionally) move point to NOTIFICATION."
-  (let ((buffer (get-buffer dnel-log-name))
-        (position (if notification
-                      (dnel-notification-log-position notification))))
-    (pop-to-buffer (or buffer (dnel-generate-log-buffer dnel-log-name)))
-    (if position (dnel-toggle-body-visibility (goto-char position)))))
 
 (defun dnel--update-log (old new)
   "Remove OLD notification from and add NEW one to current buffer."
