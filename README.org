@@ -1,16 +1,16 @@
 * A Notification Server for Emacs
 
-DNel is an Emacs package that implements a
+EDNC is an Emacs package that implements a
 [[https://people.gnome.org/~mccann/docs/notification-spec/notification-spec-latest.html][Desktop Notifications service]]
 in pure Lisp, aspiring to be a small, but flexible drop-in replacement for
 standalone daemons like [[https://dunst-project.org/][Dunst]].
 Active notifications are tracked
-whenever the global minor mode ~dnel-mode~ is active and
-can be retrieved as a list with the function ~dnel-notifications~.
-DNel also provides a hook ~dnel-notifications-changed-functions~, so that
+whenever the global minor mode ~ednc-mode~ is active and
+can be retrieved as a list with the function ~ednc-notifications~.
+EDNC also provides a hook ~ednc-notifications-changed-functions~, so that
 users can handle newly added and removed notifications as they see fit.
-To be useful out of the box, DNel records past and present notifications
-in the interactive log buffer ~*dnel-log*~.
+To be useful out of the box, EDNC records past and present notifications
+in the interactive log buffer ~*ednc-log*~.
 
 ** Basic Usage
 
@@ -19,8 +19,8 @@ point it to a local copy of this repository.
 The package will hopefully end up on [[https://melpa.org][MELPA]] in due time.
 
 After installation, ensure that no other notification daemon is active,
-execute the ~dnel-mode~ command to activate the global minor mode, and
-observe the interactive log buffer ~*dnel-log*~.
+execute the ~ednc-mode~ command to activate the global minor mode, and
+observe the interactive log buffer ~*ednc-log*~.
 
 Every notification recorded in the log buffer has text properties so that
 - the left mouse button invokes the notification's default action,
@@ -30,8 +30,8 @@ Every notification recorded in the log buffer has text properties so that
 ** Advanced Usage
 
 You can also
-retrieve currently active notifications with the function ~dnel-notifications~
-whenever the (abnormal) hook ~dnel-notifications-changed-functions~ runs.
+retrieve currently active notifications with the function ~ednc-notifications~
+whenever the (abnormal) hook ~ednc-notifications-changed-functions~ runs.
 Functions in that hook are given access to the exact notification that changed.
 Read on for some suggestions.
 
@@ -42,7 +42,7 @@ first define a function that returns active notifications as a string:
 #+NAME: list
 #+BEGIN_SRC emacs-lisp :tangle yes
 (defun list-notifications ()
-  (mapconcat #'dnel-format-notification (dnel-notifications) ""))
+  (mapconcat #'ednc-format-notification (ednc-notifications) ""))
 #+END_SRC
 
 Alternatively, only include the newest notification per application:
@@ -50,17 +50,17 @@ Alternatively, only include the newest notification per application:
 #+BEGIN_SRC emacs-lisp :tangle yes
 (defun stack-notifications (&optional hide)
   (mapconcat (lambda (notification)
-               (let ((app-name (dnel-notification-app-name notification)))
+               (let ((app-name (ednc-notification-app-name notification)))
                  (if (member app-name hide) ""
                    (push app-name hide)
-                   (dnel-format-notification notification))))
-             (dnel-notifications) ""))
+                   (ednc-format-notification notification))))
+             (ednc-notifications) ""))
 #+END_SRC
 
 Use the respective function's result as part of your mode-line
 every time a new notification appears, or an old one is removed:
 #+BEGIN_SRC emacs-lisp
 (nconc global-mode-string '((:eval (stack-notifications))))  ; or list
-(add-hook 'dnel-notifications-changed-functions (lambda (&rest _)
+(add-hook 'ednc-notifications-changed-functions (lambda (&rest _)
                                                   (force-mode-line-update t)))
 #+END_SRC
