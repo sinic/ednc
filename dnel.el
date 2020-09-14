@@ -44,7 +44,7 @@
 (cl-defstruct (dnel-notification (:constructor dnel--notification-create)
                                  (:copier nil))
   id app-name summary body actions image hints timer client
-  log-position pop-suffix)
+  logged pop-suffix)
 
 ;;;###autoload
 (define-minor-mode dnel-mode
@@ -141,18 +141,14 @@ ACTION defaults to the key \"default\"."
 (defun dnel--format-summary (notification)
   "Return propertized summary of NOTIFICATION."
   (let ((summary (dnel-notification-summary notification))
-        (controls
-         `((mouse-1 . ,(lambda () (interactive)
-                         (dnel-invoke-action notification)))
-           (C-mouse-1 . ,(lambda () (interactive)
-                           (pop-to-buffer (or (get-buffer dnel-log-name)
-                                              (dnel-generate-log-buffer)))
-                           (dnel-toggle-body-visibility
-                            (goto-char (dnel-notification-log-position
-                                        notification)))))
-           (down-mouse-2 . ,(dnel--get-actions-keymap notification))
-           (mouse-3 . ,(lambda () (interactive)
-                         (dnel-dismiss-notification notification))))))
+        (controls `((mouse-1 . ,(lambda () (interactive)
+                                  (dnel-invoke-action notification)))
+                    (C-mouse-1 . ,(lambda () (interactive)
+                                    (dnel-pop-to-notification-in-log-buffer
+                                     notification)))
+                    (down-mouse-2 . ,(dnel--get-actions-keymap notification))
+                    (mouse-3 . ,(lambda () (interactive)
+                                  (dnel-dismiss-notification notification))))))
     (propertize summary 'mouse-face 'mode-line-highlight 'keymap
                 `(keymap (header-line keymap . ,controls)
                          (mode-line keymap . ,controls) . ,controls))))
@@ -294,31 +290,37 @@ SYMBOL describes a D-Bus function (e.g., `dbus-call-method'),
 REST contains the remaining arguments to that function."
   (apply #'dnel--dbus-talk-to dnel--service symbol rest))
 
-(defun dnel-generate-log-buffer ()
-  "Return newly initialized log buffer."
-  (with-current-buffer (generate-new-buffer dnel-log-name)
+(defun dnel-pop-to-notification-in-log-buffer (notification)
+  "Pop to NOTIFICATION in its log buffer, if it exists."
+  (cl-destructuring-bind (buffer . position)
+      (dnel-notification-logged notification)
+    (if (not (buffer-live-p buffer)) (user-error "Log buffer no longer exists")
+      (pop-to-buffer buffer)
+      (dnel-toggle-body-visibility (goto-char position)))))
+
+(defun dnel--remove-old-notification-from-log-buffer (old)
+  "Remove OLD notification from its log buffer, if it exists."
+  (cl-destructuring-bind (buffer . position) (dnel-notification-logged old)
+    (if (buffer-live-p buffer)
+        (with-current-buffer buffer
+          (save-excursion
+            (add-text-properties (goto-char position) (line-end-position)
+                                 '(face (:strike-through t))))))))
+
+(defun dnel--append-new-notification-to-log-buffer (new)
+  "Append NEW notification to log buffer."
+  (with-current-buffer (get-buffer-create dnel-log-name)
     (special-mode)
     (use-local-map dnel-log-map)
-    (let ((inhibit-read-only t))
-      (save-excursion
-        (dolist (notification (reverse (cdr dnel--state)))
-          (setf (dnel-notification-log-position notification) (point))
-          (insert (dnel-format-notification notification) ?\n))))
-    (current-buffer)))
+    (save-excursion (setf (dnel-notification-logged new)
+                          (cons (current-buffer) (goto-char (point-max))))
+                    (insert (dnel-format-notification new) ?\n))))
 
 (defun dnel--update-log-buffer (old new)
   "Remove OLD notification from and add NEW one to log buffer."
-  (let ((inhibit-read-only t)
-        (buffer (get-buffer dnel-log-name)))
-    (with-current-buffer (or buffer (dnel-generate-log-buffer))
-      (when buffer
-        (save-excursion
-          (if old (add-text-properties
-                   (goto-char (dnel-notification-log-position old))
-                   (line-end-position) '(face (:strike-through t))))
-          (when new
-            (setf (dnel-notification-log-position new) (goto-char (point-max)))
-            (insert (dnel-format-notification new) ?\n)))))))
+  (let ((inhibit-read-only t))
+    (if old (dnel--remove-old-notification-from-log-buffer old))
+    (if new (dnel--append-new-notification-to-log-buffer new))))
 
 (provide 'dnel)
 ;;; dnel.el ends here
