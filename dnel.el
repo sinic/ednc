@@ -43,7 +43,7 @@
 
 (cl-defstruct (dnel-notification (:constructor dnel--notification-create)
                                  (:copier nil))
-  id app-name summary body actions image hints timer client
+  id app-name summary body actions image hints timer client controls
   dnel-tracked dnel-logged)
 
 ;;;###autoload
@@ -141,17 +141,25 @@ ACTION defaults to the key \"default\"."
 (defun dnel--format-summary (notification)
   "Return propertized summary of NOTIFICATION."
   (let ((summary (dnel-notification-summary notification))
-        (controls `((mouse-1 . ,(lambda () (interactive)
-                                  (dnel-invoke-action notification)))
-                    (C-mouse-1 . ,(lambda () (interactive)
-                                    (dnel-pop-to-notification-in-log-buffer
-                                     notification)))
-                    (down-mouse-2 . ,(dnel--get-actions-keymap notification))
-                    (mouse-3 . ,(lambda () (interactive)
-                                  (dnel-dismiss-notification notification))))))
+        (controls (dnel-notification-controls notification)))
     (propertize summary 'mouse-face 'mode-line-highlight 'keymap
                 `(keymap (header-line keymap . ,controls)
                          (mode-line keymap . ,controls) . ,controls))))
+
+(defun dnel--set-default-controls (notification)
+  "Add default mouse controls to NOTIFICATION."
+  (setf (dnel-notification-controls notification)
+        `((mouse-1 . ,(lambda () (interactive)
+                        (dnel-invoke-action notification)))
+          (down-mouse-2 . ,(dnel--get-actions-keymap notification))
+          (mouse-3 . ,(lambda () (interactive)
+                        (dnel-dismiss-notification notification))))))
+
+(defun dnel--add-log-controls (notification)
+  "Add mouse controls for log navigation to NOTIFICATION."
+  (push `(C-mouse-1 . ,(lambda () (interactive)
+                         (dnel-pop-to-notification-in-log-buffer notification)))
+        (dnel-notification-controls notification)))
 
 (defun dnel--get-actions-keymap (notification)
   "Return keymap for actions of NOTIFICATION."
@@ -196,6 +204,7 @@ are the received values as described in the Desktop Notification standard."
         (setf (dnel-notification-timer new)
               (run-at-time (/ expire-timeout 1000.0) nil
                            #'dnel--close-notification new 1)))
+    (dnel--set-default-controls new)
     (if old (dnel--delete-notification old))
     (dnel--push-notification new)
     (run-hook-with-args 'dnel-notifications-changed-functions old new)
@@ -312,6 +321,7 @@ REST contains the remaining arguments to that function."
   (with-current-buffer (get-buffer-create dnel-log-name)
     (special-mode)
     (use-local-map dnel-log-map)
+    (dnel--add-log-controls new)
     (save-excursion (setf (dnel-notification-dnel-logged new)
                           (cons (current-buffer) (goto-char (point-max))))
                     (insert (dnel-format-notification new) ?\n))))
