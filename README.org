@@ -23,7 +23,6 @@ execute the ~dnel-mode~ command to activate the global minor mode, and
 observe the interactive log buffer ~*dnel-log*~.
 
 Every notification recorded in the log buffer has text properties so that
-- hovering over its summary displays the body as a tooltip,
 - the left mouse button invokes the notification's default action,
 - the middle mouse button shows a menu of all available actions, and
 - the right mouse button closes the notification.
