@@ -21,15 +21,16 @@
 ;; along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 ;;; Commentary:
-;; EDNC is an Emacs package that implements a Desktop Notifications
-;; server in pure Lisp, aspiring to be a small, but flexible drop-in
-;; replacement for standalone daemons like Dunst.  Active notifications
-;; are tracked whenever the global minor mode `ednc-mode' is active and
-;; can be retrieved as a list with the function `ednc-notifications'.
-;; EDNC also provides a hook `ednc-notifications-changed-functions', so
-;; that users can handle newly added and removed notifications as they
-;; see fit.  To be useful out of the box, EDNC records past and present
-;; notifications in the interactive log buffer `*ednc-log*'.
+;; The Emacs Desktop Notification Center (EDNC) is an Emacs package
+;; written in pure Lisp that implements a Desktop Notifications service
+;; according to the freedesktop.org specification.  EDNC aspires to be
+;; a small, but flexible drop-in replacement of standalone daemons like
+;; Dunst.  A global minor mode `ednc-mode' tracks active notifications,
+;; which users can access by the function `ednc-notifications'.  EDNC
+;; also provides a hook `ednc-notifications-changed-functions', so that
+;; users can handle newly added and removed notifications as they see
+;; fit.  To be useful out of the box, a default hook function records
+;; all notifications in the interactive log buffer `*ednc-log*'.
 
 ;;; Code:
 (require 'cl-lib)
