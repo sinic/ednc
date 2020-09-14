@@ -44,7 +44,7 @@
 (cl-defstruct (dnel-notification (:constructor dnel--notification-create)
                                  (:copier nil))
   id app-name summary body actions image hints timer client
-  logged pop-suffix)
+  dnel-tracked dnel-logged)
 
 ;;;###autoload
 (define-minor-mode dnel-mode
@@ -83,7 +83,7 @@ active notifications, newest first.")
 
 ACTION defaults to the key \"default\"."
   (interactive (list (get-text-property (point) 'dnel-notification)))
-  (unless (and notification (dnel-notification-pop-suffix notification))
+  (unless (and notification (dnel-notification-dnel-tracked notification))
     (user-error "No active notification at point"))
   (dnel--dbus-talk-to (dnel-notification-client notification) 'dbus-send-signal
                       "ActionInvoked" (dnel-notification-id notification)
@@ -92,7 +92,7 @@ ACTION defaults to the key \"default\"."
 (defun dnel-dismiss-notification (notification)
   "Dismiss the NOTIFICATION."
   (interactive (list (get-text-property (point) 'dnel-notification)))
-  (unless (and notification (dnel-notification-pop-suffix notification))
+  (unless (and notification (dnel-notification-dnel-tracked notification))
     (user-error "No active notification at point"))
   (dnel--close-notification notification 2))
 
@@ -258,19 +258,19 @@ This function is destructive."
 (defun dnel--push-notification (notification)
   "Push NOTIFICATION to parent state `dnel--state'."
   (let ((state dnel--state))
-    (setf (dnel-notification-pop-suffix notification) state)
+    (setf (dnel-notification-dnel-tracked notification) state)
     (let ((next (cadr state)))
       (push notification (cdr state))
-      (if next (setf (dnel-notification-pop-suffix next) (cdr state))))))
+      (if next (setf (dnel-notification-dnel-tracked next) (cdr state))))))
 
 (defun dnel--delete-notification (notification)
   "Delete NOTIFICATION from parent state and return it."
-  (let ((suffix (dnel-notification-pop-suffix notification)))
-    (setf (dnel-notification-pop-suffix notification) nil)
+  (let ((suffix (dnel-notification-dnel-tracked notification)))
+    (setf (dnel-notification-dnel-tracked notification) nil)
     (let ((timer (dnel-notification-timer notification)))
       (if timer (cancel-timer timer)))
     (let ((next (caddr suffix)))
-      (if next (setf (dnel-notification-pop-suffix next) suffix)))
+      (if next (setf (dnel-notification-dnel-tracked next) suffix)))
     (pop (cdr suffix))))
 
 (defun dnel--dbus-talk-to (service symbol &rest rest)
@@ -293,14 +293,14 @@ REST contains the remaining arguments to that function."
 (defun dnel-pop-to-notification-in-log-buffer (notification)
   "Pop to NOTIFICATION in its log buffer, if it exists."
   (cl-destructuring-bind (buffer . position)
-      (dnel-notification-logged notification)
+      (dnel-notification-dnel-logged notification)
     (if (not (buffer-live-p buffer)) (user-error "Log buffer no longer exists")
       (pop-to-buffer buffer)
       (dnel-toggle-body-visibility (goto-char position)))))
 
 (defun dnel--remove-old-notification-from-log-buffer (old)
   "Remove OLD notification from its log buffer, if it exists."
-  (cl-destructuring-bind (buffer . position) (dnel-notification-logged old)
+  (cl-destructuring-bind (buffer . position) (dnel-notification-dnel-logged old)
     (if (buffer-live-p buffer)
         (with-current-buffer buffer
           (save-excursion
@@ -312,7 +312,7 @@ REST contains the remaining arguments to that function."
   (with-current-buffer (get-buffer-create dnel-log-name)
     (special-mode)
     (use-local-map dnel-log-map)
-    (save-excursion (setf (dnel-notification-logged new)
+    (save-excursion (setf (dnel-notification-dnel-logged new)
                           (cons (current-buffer) (goto-char (point-max))))
                     (insert (dnel-format-notification new) ?\n))))
 
