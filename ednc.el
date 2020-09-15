@@ -1,4 +1,4 @@
-;;; ednc.el --- Emacs Desktop Notifications server -*- lexical-binding: t; -*-
+;;; ednc.el --- Emacs Desktop Notification Center -*- lexical-binding: t; -*-
 ;; Copyright (C) 2020 Simon Nicolussi
 
 ;; Author: Simon Nicolussi <sinic@sinic.name>

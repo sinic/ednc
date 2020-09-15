@@ -1,4 +1,4 @@
-* A Notification Server for Emacs
+* The Emacs Desktop Notification Center
 
 The Emacs Desktop Notification Center (EDNC) is
 an Emacs package written in pure Lisp that
