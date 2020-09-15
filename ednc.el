@@ -66,14 +66,18 @@ This object is currently implemented as a cons cell: its car is the
 count of distinct IDs assigned so far, its cdr is a list of currently
 active notifications, newest first.")
 
-(defvar ednc-log-map
+(defvar ednc-view-mode-map
   (let ((map (make-sparse-keymap)))
     (set-keymap-parent map special-mode-map)
     (define-key map (kbd "RET") #'ednc-invoke-action)
     (define-key map (kbd "TAB") #'ednc-toggle-body-visibility)
     (define-key map "d" #'ednc-dismiss-notification)
     map)
-  "Keymap for the EDNC log buffer.")
+  "Keymap for the EDNC-View major mode.")
+
+(define-derived-mode ednc-view-mode special-mode "EDNC-View"
+  "Major mode for viewing desktop notifications."
+  (use-local-map ednc-view-mode-map))
 
 (defun ednc-notifications ()
   "Return the list of currently active notifications."
@@ -322,8 +326,7 @@ REST contains the remaining arguments to that function."
 (defun ednc--append-new-notification-to-log-buffer (new)
   "Append NEW notification to log buffer."
   (with-current-buffer (get-buffer-create ednc-log-name)
-    (special-mode)
-    (use-local-map ednc-log-map)
+    (unless (derived-mode-p #'ednc-view-mode) (ednc-view-mode))
     (ednc--add-log-controls new)
     (save-excursion (setf (ednc-notification-ednc-logged new)
                           (cons (current-buffer) (goto-char (point-max))))
