@@ -76,7 +76,7 @@ active notifications, newest first.")
   "Keymap for the EDNC log buffer.")
 
 (defun ednc-notifications ()
-  "Return currently active notifications."
+  "Return the list of currently active notifications."
   (cdr ednc--state))
 
 (defun ednc-invoke-action (notification &optional action)
