@@ -97,9 +97,11 @@ ACTION defaults to the key \"default\"."
     (user-error "No active notification at point"))
   (ednc--close-notification notification 2))
 
-(defun ednc-toggle-body-visibility (position)
-  "Toggle visibility of the body of notification at POSITION."
-  (interactive "d")
+(defun ednc-toggle-body-visibility (position &optional prefix)
+  "Toggle visibility of the body of notification at POSITION.
+
+With a non-nil PREFIX, make the body visible unconditionally."
+  (interactive "d\nP")
   (let ((prop 'ednc-notification))
     (unless (or (get-text-property position prop)
                 (if (> position 1) (get-text-property (cl-decf position) prop)))
@@ -107,7 +109,7 @@ ACTION defaults to the key \"default\"."
     (let* ((end (or (next-single-property-change position prop) (point-max)))
            (begin (or (previous-single-property-change end prop) (point-min)))
            (eol (save-excursion (goto-char begin) (line-end-position)))
-           (current (get-text-property eol 'invisible))
+           (current (or prefix (get-text-property eol 'invisible)))
            (inhibit-read-only t))
       (if (< eol end) (put-text-property eol end 'invisible (not current))))))
 
@@ -306,7 +308,7 @@ REST contains the remaining arguments to that function."
       (ednc-notification-ednc-logged notification)
     (if (not (buffer-live-p buffer)) (user-error "Log buffer no longer exists")
       (pop-to-buffer buffer)
-      (ednc-toggle-body-visibility (goto-char position)))))
+      (ednc-toggle-body-visibility (goto-char position) t))))
 
 (defun ednc--remove-old-notification-from-log-buffer (old)
   "Remove OLD notification from its log buffer, if it exists."
