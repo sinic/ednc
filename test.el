@@ -133,7 +133,7 @@
 (ert-deftest ednc--list-single-notification-test ()
   (ednc--with-temp-server
     (apply #'ednc--notify (ednc--get-test-args))
-    (should (string-equal (list-notifications) "  [test: foo]
+    (should (string-equal (list-notifications) " [test: foo]
 bar baz
 "))))
 
@@ -141,9 +141,9 @@ bar baz
   (ednc--with-temp-server
     (apply #'ednc--notify (ednc--get-test-args))
     (apply #'ednc--notify (ednc--get-test-args '(app-name . "tes1")))
-    (should (string-equal (list-notifications) "  [tes1: foo]
+    (should (string-equal (list-notifications) " [tes1: foo]
 bar baz
-  [test: foo]
+ [test: foo]
 bar baz
 "))))
 
@@ -160,7 +160,7 @@ bar baz
 (ert-deftest ednc--stack-for-single-notification-test ()
   (ednc--with-temp-server
     (apply #'ednc--notify (ednc--get-test-args))
-    (should (string-equal (stack-notifications) "  [test: foo]
+    (should (string-equal (stack-notifications) " [test: foo]
 bar baz
 "))))
 
@@ -168,9 +168,9 @@ bar baz
   (ednc--with-temp-server
     (apply #'ednc--notify (ednc--get-test-args))
     (apply #'ednc--notify (ednc--get-test-args '(app-name . "tes1")))
-    (should (string-equal (stack-notifications) "  [tes1: foo]
+    (should (string-equal (stack-notifications) " [tes1: foo]
 bar baz
-  [test: foo]
+ [test: foo]
 bar baz
 "))))
 
@@ -178,7 +178,7 @@ bar baz
   (ednc--with-temp-server
     (apply #'ednc--notify (ednc--get-test-args))
     (apply #'ednc--notify (ednc--get-test-args '(summary . "bar")))
-    (should (string-equal (stack-notifications) "  [test: bar]
+    (should (string-equal (stack-notifications) " [test: bar]
 bar baz
 "))))
 
@@ -188,7 +188,7 @@ bar baz
     (apply #'ednc--notify (ednc--get-test-args))
     (ednc--update-log-buffer nil (cadr ednc--state))
     (with-current-buffer ednc-log-name
-      (should (string-equal (buffer-string) "  [test: foo]
+      (should (string-equal (buffer-string) " [test: foo]
 bar baz
 
 ")))))
@@ -200,10 +200,10 @@ bar baz
       (apply #'ednc--notify (ednc--get-test-args '(app-name . "tes1")))
       (ednc--update-log-buffer nil (cadr ednc--state))
       (with-current-buffer ednc-log-name
-        (should (string-equal (buffer-string) "  [test: foo]
+        (should (string-equal (buffer-string) " [test: foo]
 bar baz
 
-  [tes1: foo]
+ [tes1: foo]
 bar baz
 
 ")))))
@@ -219,10 +219,10 @@ bar baz
       (ednc--close-notification (cadr ednc--state) 3)
       (ednc--update-log-buffer notification nil)
       (with-current-buffer ednc-log-name
-        (should (string-equal (buffer-string) "  [test: foo]
+        (should (string-equal (buffer-string) " [test: foo]
 bar baz
 
-  [tes1: foo]
+ [tes1: foo]
 bar baz
 
 "))
@@ -238,10 +238,10 @@ bar baz
       (apply #'ednc--notify (ednc--get-test-args `(replaces-id . ,id)))
       (ednc--update-log-buffer notification (cadr ednc--state))
       (with-current-buffer ednc-log-name
-        (should (string-equal (buffer-string) "  [test: foo]
+        (should (string-equal (buffer-string) " [test: foo]
 bar baz
 
-  [test: foo]
+ [test: foo]
 bar baz
 
 "))
@@ -271,7 +271,7 @@ bar baz
   (ednc--with-temp-server
     (apply #'ednc--notify (ednc--get-test-args))
     (should (string-equal (ednc-format-notification (cadr ednc--state))
-                          "  [test: foo]
+                          " [test: foo]
 bar baz
 "))))
 

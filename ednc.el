@@ -44,8 +44,8 @@
 
 (cl-defstruct (ednc-notification (:constructor ednc--notification-create)
                                  (:copier nil))
-  id app-name app-icon summary body actions image hints timer client controls
-  ednc-tracked ednc-logged)
+  id app-name app-icon summary body actions hints client timer parent hook-data)
+
 
 ;;;###autoload
 (define-minor-mode ednc-mode
@@ -89,7 +89,7 @@ active notifications, newest first.")
 
 ACTION defaults to the key \"default\"."
   (interactive (list (get-text-property (point) 'ednc-notification)))
-  (unless (and notification (ednc-notification-ednc-tracked notification))
+  (unless (and notification (ednc-notification-parent notification))
     (user-error "No active notification at point"))
   (ednc--dbus-talk-to (ednc-notification-client notification) 'dbus-send-signal
                       "ActionInvoked" (ednc-notification-id notification)
@@ -98,7 +98,7 @@ ACTION defaults to the key \"default\"."
 (defun ednc-dismiss-notification (notification)
   "Dismiss the NOTIFICATION."
   (interactive (list (get-text-property (point) 'ednc-notification)))
-  (unless (and notification (ednc-notification-ednc-tracked notification))
+  (unless (and notification (ednc-notification-parent notification))
     (user-error "No active notification at point"))
   (ednc--close-notification notification 2))
 
@@ -140,7 +140,7 @@ With a non-nil PREFIX, make the body visible unconditionally."
          (inherit (if (<= urgency 0) 'shadow (if (>= urgency 2) 'bold))))
     (format (propertize " %s[%s: %s]%s" 'face (list :inherit inherit)
                         'ednc-notification notification)
-            (propertize " " 'display (ednc-notification-image notification))
+            (or (alist-get 'icon (ednc-notification-hook-data notification)) "")
             (ednc-notification-app-name notification)
             (ednc--format-summary notification)
             (propertize (concat "\n" (ednc-notification-body notification) "\n")
@@ -149,25 +149,26 @@ With a non-nil PREFIX, make the body visible unconditionally."
 (defun ednc--format-summary (notification)
   "Return propertized summary of NOTIFICATION."
   (let ((summary (ednc-notification-summary notification))
-        (controls (ednc-notification-controls notification)))
+        (controls (alist-get 'controls
+                             (ednc-notification-hook-data notification))))
     (propertize summary 'mouse-face 'mode-line-highlight 'keymap
                 `(keymap (header-line keymap . ,controls)
                          (mode-line keymap . ,controls) . ,controls))))
 
 (defun ednc--set-mouse-controls (_old new)
   "Set default mouse controls of NEW notification."
-  (if new (setf (ednc-notification-controls new)
-                `((mouse-1 . ,(lambda () (interactive)
-                                (ednc-invoke-action new)))
-                  (down-mouse-2 . ,(ednc--get-actions-keymap new))
-                  (mouse-3 . ,(lambda () (interactive)
-                                (ednc-dismiss-notification new)))))))
+  (if new (push `(controls . ((mouse-1 . ,(lambda () (interactive)
+                                            (ednc-invoke-action new)))
+                              (down-mouse-2 . ,(ednc--get-actions-keymap new))
+                              (mouse-3 . ,(lambda () (interactive)
+                                            (ednc-dismiss-notification new)))))
+                (ednc-notification-hook-data new))))
 
 (defun ednc--add-log-mouse-controls (notification)
   "Add mouse controls for log navigation to NOTIFICATION."
   (push `(C-mouse-1 . ,(lambda () (interactive)
                          (ednc-pop-to-notification-in-log-buffer notification)))
-        (ednc-notification-controls notification)))
+        (alist-get 'controls (ednc-notification-hook-data notification))))
 
 (defun ednc--get-actions-keymap (notification)
   "Return keymap for actions of NOTIFICATION."
@@ -218,7 +219,7 @@ are the received values as described in the Desktop Notification standard."
     id))
 
 (defun ednc--set-image (_old new)
-  "Set image descriptor created from NEW notification.
+  "Set image string created from NEW notification.
 
 This function modifies the notification's hints."
   (if new
@@ -229,8 +230,9 @@ This function modifies the notification's hints."
                   (ednc--path-to-image (ednc-notification-app-icon new))
                   (ednc--data-to-image (ednc--get-hint hints "icon_data" t)))))
         (if image (setf (image-property image :max-height) (line-pixel-height)
-                        (image-property image :ascent) 90
-                        (ednc-notification-image new) image)))))
+                        (image-property image :ascent) 90))
+        (push (cons 'icon (propertize " " 'display image))
+              (ednc-notification-hook-data new)))))
 
 (defun ednc--get-hint (hints key &optional remove)
   "Return and delete from HINTS the value specified by KEY.
@@ -277,19 +279,19 @@ This function is destructive."
 (defun ednc--push-notification (notification)
   "Push NOTIFICATION to parent state `ednc--state'."
   (let ((state ednc--state))
-    (setf (ednc-notification-ednc-tracked notification) state)
+    (setf (ednc-notification-parent notification) state)
     (let ((next (cadr state)))
       (push notification (cdr state))
-      (if next (setf (ednc-notification-ednc-tracked next) (cdr state))))))
+      (if next (setf (ednc-notification-parent next) (cdr state))))))
 
 (defun ednc--delete-notification (notification)
   "Delete NOTIFICATION from parent state and return it."
-  (let ((suffix (ednc-notification-ednc-tracked notification)))
-    (setf (ednc-notification-ednc-tracked notification) nil)
+  (let ((suffix (ednc-notification-parent notification)))
+    (setf (ednc-notification-parent notification) nil)
     (let ((timer (ednc-notification-timer notification)))
       (if timer (cancel-timer timer)))
     (let ((next (caddr suffix)))
-      (if next (setf (ednc-notification-ednc-tracked next) suffix)))
+      (if next (setf (ednc-notification-parent next) suffix)))
     (pop (cdr suffix))))
 
 (defun ednc--dbus-talk-to (service symbol &rest rest)
@@ -312,14 +314,15 @@ REST contains the remaining arguments to that function."
 (defun ednc-pop-to-notification-in-log-buffer (notification)
   "Pop to NOTIFICATION in its log buffer, if it exists."
   (cl-destructuring-bind (buffer . position)
-      (ednc-notification-ednc-logged notification)
+      (alist-get 'logged (ednc-notification-hook-data notification) '(nil))
     (if (not (buffer-live-p buffer)) (user-error "Log buffer no longer exists")
       (pop-to-buffer buffer)
       (ednc-toggle-body-visibility (goto-char position) t))))
 
 (defun ednc--remove-old-notification-from-log-buffer (old)
   "Remove OLD notification from its log buffer, if it exists."
-  (cl-destructuring-bind (buffer . position) (ednc-notification-ednc-logged old)
+  (cl-destructuring-bind (buffer . position)
+      (alist-get 'logged (ednc-notification-hook-data old) '(nil))
     (if (buffer-live-p buffer)
         (with-current-buffer buffer
           (save-excursion
@@ -331,8 +334,8 @@ REST contains the remaining arguments to that function."
   (with-current-buffer (get-buffer-create ednc-log-name)
     (unless (derived-mode-p #'ednc-view-mode) (ednc-view-mode))
     (ednc--add-log-mouse-controls new)
-    (save-excursion (setf (ednc-notification-ednc-logged new)
-                          (cons (current-buffer) (goto-char (point-max))))
+    (save-excursion (push `(logged ,(current-buffer) . ,(goto-char (point-max)))
+                          (ednc-notification-hook-data new))
                     (insert (ednc-format-notification new) ?\n))))
 
 (defun ednc--update-log-buffer (old new)
