@@ -39,9 +39,9 @@ whenever the (abnormal) hook ~ednc-notifications-changed-functions~ runs.
 Functions in that hook are given access to the exact notification that changed.
 Read on for some suggestions.
 
-*** Show Active Notifications
+*** Show Active Notifications in Mode Line
 
-To simply display all active notifications in the mode-line,
+To simply display all active notifications in the mode line,
 first define a function that returns active notifications as a string:
 #+NAME: list
 #+BEGIN_SRC emacs-lisp :tangle yes
@@ -61,7 +61,7 @@ Alternatively, only include the newest notification per application:
              (ednc-notifications) ""))
 #+END_SRC
 
-Use the respective function's result as part of your mode-line
+Use the respective function's result as part of your mode line
 every time a new notification appears, or an old one is removed:
 #+BEGIN_SRC emacs-lisp
 (nconc global-mode-string '((:eval (stack-notifications))))  ; or list
@@ -72,7 +72,7 @@ every time a new notification appears, or an old one is removed:
 *** Pop to Buffer for Every New Notification
 
 If you want to create a new buffer for every new notification
-(instead of or in addition to displaying it in the mode-line)
+(instead of or in addition to displaying it in the mode line)
 first define a function uses of the abnormal hook's arguments:
 #+NAME: buffer
 #+BEGIN_SRC emacs-lisp :tangle yes
