@@ -71,7 +71,7 @@ active notifications, newest first.")
   (let ((map (make-sparse-keymap)))
     (set-keymap-parent map special-mode-map)
     (define-key map (kbd "RET") #'ednc-invoke-action)
-    (define-key map (kbd "TAB") #'ednc-toggle-body-visibility)
+    (define-key map (kbd "TAB") #'ednc-toggle-expanded-view)
     (define-key map "d" #'ednc-dismiss-notification)
     map)
   "Keymap for the EDNC-View major mode.")
@@ -102,10 +102,10 @@ ACTION defaults to the key \"default\"."
     (user-error "No active notification at point"))
   (ednc--close-notification notification 2))
 
-(defun ednc-toggle-body-visibility (position &optional prefix)
-  "Toggle visibility of the body of notification at POSITION.
+(defun ednc-toggle-expanded-view (position &optional prefix)
+  "Toggle visibility of further details of notification at POSITION.
 
-With a non-nil PREFIX, make the body visible unconditionally."
+With a non-nil PREFIX, make those details visible unconditionally."
   (interactive "d\nP")
   (let ((prop 'ednc-notification))
     (unless (or (get-text-property position prop)
@@ -317,7 +317,7 @@ REST contains the remaining arguments to that function."
       (alist-get 'logged (ednc-notification-hook-data notification) '(nil))
     (if (not (buffer-live-p buffer)) (user-error "Log buffer no longer exists")
       (pop-to-buffer buffer)
-      (ednc-toggle-body-visibility (goto-char position) t))))
+      (ednc-toggle-expanded-view (goto-char position) t))))
 
 (defun ednc--remove-old-notification-from-log-buffer (old)
   "Remove OLD notification from its log buffer, if it exists."
