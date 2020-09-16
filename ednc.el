@@ -45,7 +45,7 @@
 
 (cl-defstruct (ednc-notification (:constructor ednc--notification-create)
                                  (:copier nil))
-  id app-name app-icon summary body actions hints client timer parent hook-data)
+  id app-name app-icon summary body actions hints client timer parent amendment)
 
 ;;;###autoload
 (define-minor-mode ednc-mode
@@ -146,7 +146,7 @@ With a non-nil PREFIX, make those details visible unconditionally."
          (inherit (if (<= urgency 0) 'shadow (if (>= urgency 2) 'bold))))
     (format (propertize " %s[%s: %s]%s" 'face (list :inherit inherit)
                         'ednc-notification notification)
-            (or (alist-get 'icon (ednc-notification-hook-data notification)) "")
+            (or (alist-get 'icon (ednc-notification-amendment notification)) "")
             (ednc-notification-app-name notification)
             (ednc--format-summary notification)
             (propertize (concat "\n" (ednc-notification-body notification) "\n")
@@ -156,25 +156,25 @@ With a non-nil PREFIX, make those details visible unconditionally."
   "Return propertized summary of NOTIFICATION."
   (let ((summary (ednc-notification-summary notification))
         (controls (alist-get 'controls
-                             (ednc-notification-hook-data notification))))
+                             (ednc-notification-amendment notification))))
     (propertize summary 'mouse-face 'mode-line-highlight 'keymap
                 `(keymap (header-line keymap . ,controls)
                          (mode-line keymap . ,controls) . ,controls))))
 
 (defun ednc--add-mouse-controls (new)
   "Set default mouse controls of NEW notification."
-  (setf (alist-get 'controls (ednc-notification-hook-data new))
+  (setf (alist-get 'controls (ednc-notification-amendment new))
         (nconc `((mouse-1 . ,(lambda () (interactive) (ednc-invoke-action new)))
                  (down-mouse-2 . ,(ednc--get-actions-keymap new))
                  (mouse-3 . ,(lambda () (interactive)
                                (ednc-dismiss-notification new))))
-               (alist-get 'controls (ednc-notification-hook-data new)))))
+               (alist-get 'controls (ednc-notification-amendment new)))))
 
 (defun ednc--add-log-mouse-controls (new)
   "Add mouse controls for log navigation to NEW notification."
   (push `(C-mouse-1 . ,(lambda () (interactive)
                          (ednc-pop-to-notification-in-log-buffer new)))
-        (alist-get 'controls (ednc-notification-hook-data new))))
+        (alist-get 'controls (ednc-notification-amendment new))))
 
 (defun ednc--get-actions-keymap (notification)
   "Return keymap for actions of NOTIFICATION."
@@ -238,7 +238,7 @@ This function modifies the notification's hints."
     (if image (setf (image-property image :max-height) (line-pixel-height)
                     (image-property image :ascent) 90))
     (push (cons 'icon (propertize " " 'display image))
-          (ednc-notification-hook-data new))))
+          (ednc-notification-amendment new))))
 
 (defun ednc--get-hint (hints key &optional remove)
   "Return and delete from HINTS the value specified by KEY.
@@ -320,7 +320,7 @@ REST contains the remaining arguments to that function."
 (defun ednc-pop-to-notification-in-log-buffer (notification)
   "Pop to NOTIFICATION in its log buffer, if it exists."
   (cl-destructuring-bind (buffer . position)
-      (alist-get 'logged (ednc-notification-hook-data notification) '(nil))
+      (alist-get 'logged (ednc-notification-amendment notification) '(nil))
     (if (not (buffer-live-p buffer)) (user-error "Log buffer no longer exists")
       (pop-to-buffer buffer)
       (ednc-toggle-expanded-view (goto-char position) t))))
@@ -328,7 +328,7 @@ REST contains the remaining arguments to that function."
 (defun ednc--remove-old-notification-from-log-buffer (old)
   "Remove OLD notification from its log buffer, if it exists."
   (cl-destructuring-bind (buffer . position)
-      (alist-get 'logged (ednc-notification-hook-data old) '(nil))
+      (alist-get 'logged (ednc-notification-amendment old) '(nil))
     (if (buffer-live-p buffer)
         (with-current-buffer buffer
           (save-excursion
@@ -340,7 +340,7 @@ REST contains the remaining arguments to that function."
   (with-current-buffer (get-buffer-create ednc-log-name)
     (unless (derived-mode-p #'ednc-view-mode) (ednc-view-mode))
     (save-excursion (push `(logged ,(current-buffer) . ,(goto-char (point-max)))
-                          (ednc-notification-hook-data new))
+                          (ednc-notification-amendment new))
                     (insert (ednc-format-notification new) ?\n))))
 
 (defun ednc--update-log-buffer (old new)
