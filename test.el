@@ -23,7 +23,8 @@
 (defmacro ednc--with-temp-server (&rest body)
   (declare (indent defun))
   `(let ((ednc-log-name "*ednc-test-log*")
-         (ednc-notifications-changed-functions)
+         (ednc-notification-amend-functions)
+         (ednc-notification-present-functions)
          (ednc--state (list 0)))
      (skip-unless (not ednc-mode))  ; conflicting servers?
      (ednc--start-server)

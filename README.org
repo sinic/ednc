@@ -8,11 +8,13 @@ EDNC aspires to be a small, but flexible drop-in replacement
 of standalone daemons like [[https://dunst-project.org/][Dunst]].
 A global minor mode ~ednc-mode~ tracks active notifications,
 which users can access by the function ~ednc-notifications~.
-EDNC also provides a hook ~ednc-notifications-changed-functions~,
-so that users can handle newly added and removed notifications as they see fit.
+Users can add functions
+to the hook ~ednc-notification-amend-functions~ to amend data and
+to the hook ~ednc-notifications-present-functions~ to present notifications
+as they see fit.
 To be useful out of the box,
-a default hook function records all notifications
-in the interactive log buffer ~*ednc-log*~.
+default hooks record all notifications
+in an interactive log buffer ~*ednc-log*~.
 
 ** Basic Usage
 
@@ -63,6 +65,6 @@ Use the respective function's result as part of your mode-line
 every time a new notification appears, or an old one is removed:
 #+BEGIN_SRC emacs-lisp
 (nconc global-mode-string '((:eval (stack-notifications))))  ; or list
-(add-hook 'ednc-notifications-changed-functions (lambda (&rest _)
-                                                  (force-mode-line-update t)))
+(add-hook 'ednc-notification-present-functions (lambda (&rest _)
+                                                 (force-mode-line-update t)))
 #+END_SRC

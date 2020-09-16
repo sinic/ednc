@@ -26,11 +26,12 @@
 ;; according to the freedesktop.org specification.  EDNC aspires to be
 ;; a small, but flexible drop-in replacement of standalone daemons like
 ;; Dunst.  A global minor mode `ednc-mode' tracks active notifications,
-;; which users can access by the function `ednc-notifications'.  EDNC
-;; also provides a hook `ednc-notifications-changed-functions', so that
-;; users can handle newly added and removed notifications as they see
-;; fit.  To be useful out of the box, a default hook function records
-;; all notifications in the interactive log buffer `*ednc-log*'.
+;; which users can access by the function `ednc-notifications'.  Users
+;; can add functions to the hook `ednc-notification-amend-functions' to
+;; amend data and to the hook `ednc-notifications-present-functions' to
+;; present notifications as they see fit.  To be useful out of the box,
+;; default hooks record all notifications in an interactive log buffer
+;; `*ednc-log*'.
 
 ;;; Code:
 (require 'cl-lib)
@@ -46,16 +47,21 @@
                                  (:copier nil))
   id app-name app-icon summary body actions hints client timer parent hook-data)
 
-
 ;;;###autoload
 (define-minor-mode ednc-mode
   "Act as a Desktop Notifications server and track notifications."
   :global t :lighter " EDNC"
   (if ednc-mode (ednc--start-server) (ednc--stop-server)))
 
-(defvar ednc-notifications-changed-functions
-  (list #'ednc--set-mouse-controls #'ednc--set-image #'ednc--update-log-buffer)
-  "Functions in this list are called on changes to notifications.
+(defvar ednc-notification-amend-functions
+  (list #'ednc--add-mouse-controls #'ednc--add-log-mouse-controls
+        #'ednc--set-image)
+  "Functions in this list are called to amend data to notifications.
+
+Their only argument is the newly added notification.")
+
+(defvar ednc-notification-present-functions (list #'ednc--update-log-buffer)
+  "Functions in this list are called to present notifications.
 
 Their arguments are the removed notification, if any,
 followed by the newly added notification, if any.")
@@ -128,7 +134,7 @@ With a non-nil PREFIX, make those details visible unconditionally."
 (defun ednc--close-notification (notification reason)
   "Close the NOTIFICATION for REASON."
   (ednc--delete-notification notification)
-  (run-hook-with-args 'ednc-notifications-changed-functions notification nil)
+  (run-hook-with-args 'ednc-notification-present-functions notification nil)
   (ednc--dbus-talk-to (ednc-notification-client notification) 'dbus-send-signal
                       "NotificationClosed" (ednc-notification-id notification)
                       reason))
@@ -155,20 +161,20 @@ With a non-nil PREFIX, make those details visible unconditionally."
                 `(keymap (header-line keymap . ,controls)
                          (mode-line keymap . ,controls) . ,controls))))
 
-(defun ednc--set-mouse-controls (_old new)
+(defun ednc--add-mouse-controls (new)
   "Set default mouse controls of NEW notification."
-  (if new (push `(controls . ((mouse-1 . ,(lambda () (interactive)
-                                            (ednc-invoke-action new)))
-                              (down-mouse-2 . ,(ednc--get-actions-keymap new))
-                              (mouse-3 . ,(lambda () (interactive)
-                                            (ednc-dismiss-notification new)))))
-                (ednc-notification-hook-data new))))
+  (setf (alist-get 'controls (ednc-notification-hook-data new))
+        (nconc `((mouse-1 . ,(lambda () (interactive) (ednc-invoke-action new)))
+                 (down-mouse-2 . ,(ednc--get-actions-keymap new))
+                 (mouse-3 . ,(lambda () (interactive)
+                               (ednc-dismiss-notification new))))
+               (alist-get 'controls (ednc-notification-hook-data new)))))
 
-(defun ednc--add-log-mouse-controls (notification)
-  "Add mouse controls for log navigation to NOTIFICATION."
+(defun ednc--add-log-mouse-controls (new)
+  "Add mouse controls for log navigation to NEW notification."
   (push `(C-mouse-1 . ,(lambda () (interactive)
-                         (ednc-pop-to-notification-in-log-buffer notification)))
-        (alist-get 'controls (ednc-notification-hook-data notification))))
+                         (ednc-pop-to-notification-in-log-buffer new)))
+        (alist-get 'controls (ednc-notification-hook-data new))))
 
 (defun ednc--get-actions-keymap (notification)
   "Return keymap for actions of NOTIFICATION."
@@ -215,24 +221,24 @@ are the received values as described in the Desktop Notification standard."
                            #'ednc--close-notification new 1)))
     (if old (ednc--delete-notification old))
     (ednc--push-notification new)
-    (run-hook-with-args 'ednc-notifications-changed-functions old new)
+    (run-hook-with-args 'ednc-notification-amend-functions new)
+    (run-hook-with-args 'ednc-notification-present-functions old new)
     id))
 
-(defun ednc--set-image (_old new)
+(defun ednc--set-image (new)
   "Set image string created from NEW notification.
 
 This function modifies the notification's hints."
-  (if new
-      (let* ((hints (ednc-notification-hints new))
-             (image
-              (or (ednc--data-to-image (ednc--get-hint hints "image-data" t))
-                  (ednc--path-to-image (ednc--get-hint hints "image-path" t))
-                  (ednc--path-to-image (ednc-notification-app-icon new))
-                  (ednc--data-to-image (ednc--get-hint hints "icon_data" t)))))
-        (if image (setf (image-property image :max-height) (line-pixel-height)
-                        (image-property image :ascent) 90))
-        (push (cons 'icon (propertize " " 'display image))
-              (ednc-notification-hook-data new)))))
+  (let* ((hints (ednc-notification-hints new))
+         (image
+          (or (ednc--data-to-image (ednc--get-hint hints "image-data" t))
+              (ednc--path-to-image (ednc--get-hint hints "image-path" t))
+              (ednc--path-to-image (ednc-notification-app-icon new))
+              (ednc--data-to-image (ednc--get-hint hints "icon_data" t)))))
+    (if image (setf (image-property image :max-height) (line-pixel-height)
+                    (image-property image :ascent) 90))
+    (push (cons 'icon (propertize " " 'display image))
+          (ednc-notification-hook-data new))))
 
 (defun ednc--get-hint (hints key &optional remove)
   "Return and delete from HINTS the value specified by KEY.
@@ -333,7 +339,6 @@ REST contains the remaining arguments to that function."
   "Append NEW notification to log buffer."
   (with-current-buffer (get-buffer-create ednc-log-name)
     (unless (derived-mode-p #'ednc-view-mode) (ednc-view-mode))
-    (ednc--add-log-mouse-controls new)
     (save-excursion (push `(logged ,(current-buffer) . ,(goto-char (point-max)))
                           (ednc-notification-hook-data new))
                     (insert (ednc-format-notification new) ?\n))))
