@@ -7,11 +7,12 @@ implements a Desktop Notifications service according to
 EDNC aspires to be a small, but flexible drop-in replacement
 of standalone daemons like [[https://dunst-project.org/][Dunst]].
 A global minor mode ~ednc-mode~ tracks active notifications,
-which users can access by the function ~ednc-notifications~.
-Users can add functions
-to the hook ~ednc-notification-amend-functions~ to amend data and
-to the hook ~ednc-notifications-present-functions~ to present notifications
-as they see fit.
+which users can access by calling the function ~ednc-notifications~.
+They are also free to add their own functions
+to the (abnormal) hook ~ednc-notification-amendment-functions~
+to amend arbitrary data and
+to the (abnormal) hook ~ednc-notification-presentation-functions~
+to present notifications as they see fit.
 To be useful out of the box,
 default hooks record all notifications
 in an interactive log buffer ~*ednc-log*~.
@@ -65,8 +66,8 @@ Use the respective function's result as part of your mode line
 every time a new notification appears, or an old one is removed:
 #+BEGIN_SRC emacs-lisp
 (nconc global-mode-string '((:eval (stack-notifications))))  ; or list
-(add-hook 'ednc-notification-present-functions (lambda (&rest _)
-                                                 (force-mode-line-update t)))
+(add-hook 'ednc-notification-presentation-functions
+          (lambda (&rest _) (force-mode-line-update t)))
 #+END_SRC
 
 *** Pop to Buffer for Every New Notification
@@ -89,5 +90,6 @@ first define a function uses of the abnormal hook's arguments:
 
 Then ensure the function is called at the appropriate moment:
 #+BEGIN_SRC emacs-lisp
-(add-hook 'ednc-notification-present-functions #'show-notification-in-buffer)
+(add-hook 'ednc-notification-presentation-functions
+          #'show-notification-in-buffer)
 #+END_SRC
