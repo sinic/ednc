@@ -53,7 +53,7 @@ Alternatively, only include the newest notification per application:
 (defun stack-notifications (&optional hide)
   (mapconcat (lambda (notification)
                (let ((app-name (ednc-notification-app-name notification)))
-                 (if (member app-name hide) ""
+                 (unless (member app-name hide)
                    (push app-name hide)
                    (ednc-format-notification notification))))
              (ednc-notifications) ""))
