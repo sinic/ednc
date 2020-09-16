@@ -68,3 +68,26 @@ every time a new notification appears, or an old one is removed:
 (add-hook 'ednc-notification-present-functions (lambda (&rest _)
                                                  (force-mode-line-update t)))
 #+END_SRC
+
+*** Pop to Buffer for Every New Notification
+
+If you want to create a new buffer for every new notification
+(instead of or in addition to displaying it in the mode-line)
+first define a function uses of the abnormal hook's arguments:
+#+NAME: buffer
+#+BEGIN_SRC emacs-lisp :tangle yes
+(defun show-notification-in-buffer (old new)
+  (let ((name (format "Notification %d" (ednc-notification-id (or old new)))))
+    (with-current-buffer (get-buffer-create name)
+      (if new (let ((inhibit-read-only t))
+                (if old (erase-buffer) (ednc-view-mode))
+                (insert (ednc-format-notification new))
+                (ednc-toggle-expanded-view (point) t)
+                (pop-to-buffer (current-buffer)))
+        (kill-buffer)))))
+#+END_SRC
+
+Then ensure the function is called at the appropriate moment:
+#+BEGIN_SRC emacs-lisp
+(add-hook 'ednc-notification-present-functions #'show-notification-in-buffer)
+#+END_SRC

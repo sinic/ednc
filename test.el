@@ -126,7 +126,7 @@
     (let ((test (make-ert-test :body #'ednc--test-state-consistency)))
       (should (ert-test-failed-p (ert-run-test test))))))
 
-;; Test use case 1:
+;; Test use case list-notifcations:
 (ert-deftest ednc--list-no-notifications-test ()
   (ednc--with-temp-server
     (should (string-equal "" (list-notifications)))))
@@ -148,7 +148,7 @@ bar baz
 bar baz
 "))))
 
-;; Test use case 2:
+;; Test use case stack-notifications:
 (ert-deftest ednc--stack-no-notifications-test ()
   (ednc--with-temp-server
     (should (string-equal "" (stack-notifications)))))
@@ -182,6 +182,17 @@ bar baz
     (should (string-equal (stack-notifications) " [test: bar]
 bar baz
 "))))
+
+;; Test use case show-notification-in-buffer:
+(ert-deftest ednc--show-notification-in-buffer-test ()
+  (ednc--with-temp-server
+    (apply #'ednc--notify (ednc--get-test-args))
+    (with-temp-buffer
+      (rename-buffer "Notification 1")
+      (show-notification-in-buffer nil (cadr ednc--state))
+      (should (string-equal (buffer-string) " [test: foo]
+bar baz
+")))))
 
 ;; Test logging:
 (ert-deftest ednc--log-single-notification-test ()
