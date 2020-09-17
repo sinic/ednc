@@ -140,7 +140,7 @@ With a non-nil PREFIX, make those details visible unconditionally."
                       "NotificationClosed" (ednc-notification-id notification)
                       reason))
 
-(defun ednc-format-notification (notification)
+(defun ednc-format-notification (notification &optional expanded)
   "Return propertized description of NOTIFICATION."
   (let* ((hints (ednc-notification-hints notification))
          (urgency (or (ednc--get-hint hints "urgency") 1))
@@ -151,7 +151,7 @@ With a non-nil PREFIX, make those details visible unconditionally."
             (ednc-notification-app-name notification)
             (ednc--format-summary notification)
             (propertize (concat "\n" (ednc-notification-body notification) "\n")
-                        'invisible t))))
+                        'invisible (not expanded)))))
 
 (defun ednc--format-summary (notification)
   "Return propertized summary of NOTIFICATION."

@@ -82,8 +82,7 @@ first define a function uses of the abnormal hook's arguments:
     (with-current-buffer (get-buffer-create name)
       (if new (let ((inhibit-read-only t))
                 (if old (erase-buffer) (ednc-view-mode))
-                (insert (ednc-format-notification new))
-                (ednc-toggle-expanded-view (point) t)
+                (insert (ednc-format-notification new t))
                 (pop-to-buffer (current-buffer)))
         (kill-buffer)))))
 #+END_SRC
