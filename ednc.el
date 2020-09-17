@@ -142,7 +142,9 @@ With a non-nil PREFIX, make those details visible unconditionally."
                       reason))
 
 (defun ednc-format-notification (notification &optional expanded)
-  "Return propertized description of NOTIFICATION."
+  "Return propertized description of NOTIFICATION.
+
+If EXPANDED is nil, make details invisible by default."
   (let* ((hints (ednc-notification-hints notification))
          (urgency (or (ednc--get-hint hints "urgency") 1))
          (inherit (if (<= urgency 0) 'shadow (if (>= urgency 2) 'bold))))
