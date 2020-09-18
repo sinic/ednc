@@ -36,8 +36,9 @@ Every notification recorded in the log buffer has text properties so that
 
 You can also
 retrieve currently active notifications with the function ~ednc-notifications~
-whenever the (abnormal) hook ~ednc-notifications-changed-functions~ runs.
-Functions in that hook are given access to the exact notification that changed.
+whenever the (abnormal) hook ~ednc-notification-presentation-functions~ runs.
+Functions in this hook are given access to
+the exact notification that was removed, added, or replaced.
 Read on for some suggestions.
 
 *** Show Active Notifications in Mode Line
