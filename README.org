@@ -27,16 +27,19 @@ After installation, ensure that no other notification daemon is active,
 execute the ~ednc-mode~ command to activate the global minor mode, and
 observe the interactive log buffer ~*ednc-log*~.
 
-You can use the following keybindings by default:
+You can use the following key bindings by default:
 #+BEGIN_html
 <ul><li><kbd>Return</kbd> or <kbd>mouse-1</kbd> (left click)
-        invokes the notification's default action,</li>
+        invokes the notification's default action
+        (<code>ednc-invoke-action</code>),</li>
     <li><kbd>C-mouse-1</kbd>
-        pops to the notification in the interactive log buffer,</li>
+        pops to the notification in the interactive log buffer
+	(<code>ednc-pop-to-notification-in-log-buffer</code>),</li>
     <li><kbd>down-mouse-2</kbd> (middle mouse button)
         shows a menu of all available actions, and</li>
     <li><kbd>d</kbd> or <kbd>mouse-3</kbd> (right click)
-        closes the notification.</li></ul>
+        dismisses the notification
+	(<code>ednc-dismiss-notification</code>).</li></ul>
 #+END_html
 
 ** Advanced Usage
