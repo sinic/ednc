@@ -53,7 +53,9 @@
 (define-minor-mode ednc-mode
   "Act as a Desktop Notifications server and track notifications."
   :global t :lighter " EDNC"
-  (if ednc-mode (ednc--start-server) (ednc--stop-server)))
+  (if (not ednc-mode) (ednc--stop-server)
+    (with-current-buffer (get-buffer-create ednc-log-name) (ednc-view-mode))
+    (ednc--start-server)))
 
 (defvar ednc-notification-amendment-functions
   (list #'ednc--add-mouse-controls #'ednc--add-log-mouse-controls
