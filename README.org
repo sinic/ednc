@@ -25,9 +25,11 @@ The package will hopefully end up on [[https://melpa.org][MELPA]] in due time.
 
 After installation, ensure that no other notification daemon is active,
 execute the ~ednc-mode~ command to activate the global minor mode, and
-observe the interactive log buffer ~*ednc-log*~.
+watch notifications come and go in the interactive log buffer ~*ednc-log*~.
+Some clients (e.g., web browsers) check for a notification server on startup
+and thus need to be reopened after enabling EDNC.
 
-You can use the following key bindings by default:
+In the log buffer, you can use the following key bindings by default:
 - @@html:<kbd>@@Return@@html:</kbd>@@ or @@html:<kbd>@@mouse-1@@html:</kbd>@@
   (left click) invokes the notification's default action (~ednc-invoke-action~),
 - @@html:<kbd>@@C-mouse-1@@html:</kbd>@@
@@ -37,6 +39,7 @@ You can use the following key bindings by default:
   (middle mouse button) shows a menu of all available actions, and
 - @@html:<kbd>@@d@@html:</kbd>@@ or @@html:<kbd>@@mouse-3@@html:</kbd>@@
   (right click) dismisses the notification (~ednc-dismiss-notification~).
+Mouse controls are not restricted to the log buffer.
 
 ** Advanced Usage
 
