@@ -214,7 +214,8 @@ bar baz
       (ednc--update-log-buffer nil notification)
       (apply #'notifications-notify :app-name "tes1" ednc--default-test-args)
       (ednc--update-log-buffer nil (cadr ednc--state))
-      (ednc--close-notification (cadr ednc--state) 3)
+      (notifications-close-notification (ednc-notification-id
+                                         (cadr ednc--state)))
       (ednc--update-log-buffer notification nil)
       (with-current-buffer ednc-log-name
         (should (string-equal (buffer-string) " [test: foo]
@@ -344,21 +345,19 @@ bar baz
 (ert-deftest ednc--handle-close-notification-test ()
   (ednc--with-temp-server
     (let ((id (apply #'notifications-notify ednc--default-test-args)))
-      (ednc--dbus-talk 'dbus-call-method "CloseNotification" id)
+      (notifications-close-notification id)
       (should-not (cl-find id (cdr ednc--state) :key #'ednc-notification-id)))))
 
 (ert-deftest ednc--handle-close-previously-closed-notification-test ()
   (ednc--with-temp-server
     (let ((id (apply #'notifications-notify ednc--default-test-args)))
-      (ednc--dbus-talk 'dbus-call-method "CloseNotification" id)
-      (should-error (ednc--dbus-talk 'dbus-call-method "CloseNotification"
-                                     id)))))
+      (notifications-close-notification id)
+      (should-error (notifications-close-notification id)))))
 
 (ert-deftest ednc--handle-close-nonexistent-notification-test ()
   (ednc--with-temp-server
     (let ((unused (1+ (apply #'notifications-notify ednc--default-test-args))))
-      (should-error (ednc--dbus-talk 'dbus-call-method "CloseNotification"
-                                     unused)))))
+      (should-error (notifications-close-notification unused)))))
 
 ;; Test informational handlers:
 (ert-deftest ednc--handle-get-server-information-test ()
