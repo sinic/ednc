@@ -249,13 +249,17 @@ bar baz
 ;; Test ednc-invoke-action:
 (ert-deftest ednc--invoke-default-action-test ()
   (ednc--with-temp-server
-    (apply #'notifications-notify ednc--default-test-args)
-    (ednc-invoke-action (cadr ednc--state))))  ; no real test yet
+    (apply #'notifications-notify
+           :on-action (lambda (id key) (should (string-equal key "default")))
+           ednc--default-test-args)
+    (ednc-invoke-action (cadr ednc--state))))
 
 (ert-deftest ednc--invoke-alternative-action-test ()
   (ednc--with-temp-server
-    (apply #'notifications-notify ednc--default-test-args)
-    (ednc-invoke-action (cadr ednc--state) "other")))  ; no real test yet
+    (apply #'notifications-notify
+           :on-action (lambda (id key) (should (string-equal key "other")))
+           ednc--default-test-args)
+    (ednc-invoke-action (cadr ednc--state) "other")))
 
 ;; Test ednc--close-notification:
 (ert-deftest ednc--close-notification-test ()
