@@ -120,19 +120,14 @@
 (ert-deftest ednc--list-single-notification-test ()
   (ednc--with-temp-server
     (apply #'notifications-notify ednc--default-test-args)
-    (should (string-equal (list-notifications) " [test: foo]
-bar baz
-"))))
+    (should (string-equal (list-notifications) " [test: foo]\nbar baz\n"))))
 
 (ert-deftest ednc--list-multiple-notifications-test ()
   (ednc--with-temp-server
     (apply #'notifications-notify ednc--default-test-args)
     (apply #'notifications-notify :app-name "tes1" ednc--default-test-args)
-    (should (string-equal (list-notifications) " [tes1: foo]
-bar baz
- [test: foo]
-bar baz
-"))))
+    (should (string-equal (list-notifications)
+                          " [tes1: foo]\nbar baz\n [test: foo]\nbar baz\n"))))
 
 ;; Test use case stack-notifications:
 (ert-deftest ednc--stack-no-notifications-test ()
@@ -155,19 +150,15 @@ bar baz
   (ednc--with-temp-server
     (apply #'notifications-notify ednc--default-test-args)
     (apply #'notifications-notify :app-name "tes1" ednc--default-test-args)
-    (should (string-equal (stack-notifications) " [tes1: foo]
-bar baz
- [test: foo]
-bar baz
-"))))
+    (should (string-equal (stack-notifications)
+                          " [tes1: foo]\nbar baz\n [test: foo]\nbar baz\n"))))
 
 (ert-deftest ednc--stack-stacking-notifications-test ()
   (ednc--with-temp-server
     (apply #'notifications-notify ednc--default-test-args)
     (apply #'notifications-notify :title "bar" ednc--default-test-args)
-    (should (string-equal (stack-notifications) " [test: bar]
-bar baz
-"))))
+    (should (string-equal (stack-notifications)
+                          " [test: bar]\nbar baz\n"))))
 
 ;; Test use case show-notification-in-buffer:
 (ert-deftest ednc--show-notification-in-buffer-test ()
@@ -195,16 +186,11 @@ bar baz
     (ednc--with-temp-server
       (apply #'notifications-notify ednc--default-test-args)
       (ednc--update-log-buffer nil (cadr ednc--state))
-      (apply #'notifications-notify :app-name "tes1" ednc--default-test-args)
+      (apply #'notifications-notify :body "corge" ednc--default-test-args)
       (ednc--update-log-buffer nil (cadr ednc--state))
       (with-current-buffer ednc-log-name
-        (should (string-equal (buffer-string) " [test: foo]
-bar baz
-
- [tes1: foo]
-bar baz
-
-")))))
+        (should (string-equal " [test: foo]\nbar baz\n\n [test: foo]\ncorge\n\n"
+                              (buffer-string))))))
 
 (ert-deftest ednc--log-closed-notifications-test ()
   (ednc--with-temp-server
@@ -212,19 +198,14 @@ bar baz
            (notification (cl-find id (cdr ednc--state)
                                   :key #'ednc-notification-id)))
       (ednc--update-log-buffer nil notification)
-      (apply #'notifications-notify :app-name "tes1" ednc--default-test-args)
+      (apply #'notifications-notify :body "corge" ednc--default-test-args)
       (ednc--update-log-buffer nil (cadr ednc--state))
       (notifications-close-notification (ednc-notification-id
                                          (cadr ednc--state)))
       (ednc--update-log-buffer notification nil)
       (with-current-buffer ednc-log-name
-        (should (string-equal (buffer-string) " [test: foo]
-bar baz
-
- [tes1: foo]
-bar baz
-
-"))
+        (should (string-equal " [test: foo]\nbar baz\n\n [test: foo]\ncorge\n\n"
+                              (buffer-string)))
         (should (equal (get-text-property (point-min) 'face)
                        '(:strike-through t)))))))
 
@@ -234,16 +215,12 @@ bar baz
            (notification (cl-find id (cdr ednc--state)
                                   :key #'ednc-notification-id)))
       (ednc--update-log-buffer nil notification)
-      (apply #'notifications-notify :replaces-id id ednc--default-test-args)
+      (apply #'notifications-notify :body "corge" :replaces-id id
+             ednc--default-test-args)
       (ednc--update-log-buffer notification (cadr ednc--state))
       (with-current-buffer ednc-log-name
-        (should (string-equal (buffer-string) " [test: foo]
-bar baz
-
- [test: foo]
-bar baz
-
-"))
+        (should (string-equal " [test: foo]\nbar baz\n\n [test: foo]\ncorge\n\n"
+                              (buffer-string)))
         (should (equal (get-text-property (point-min) 'face)
                        '(:strike-through t)))))))
 
@@ -274,9 +251,7 @@ bar baz
   (ednc--with-temp-server
     (apply #'notifications-notify ednc--default-test-args)
     (should (string-equal (ednc-format-notification (cadr ednc--state))
-                          " [test: foo]
-bar baz
-"))))
+                          " [test: foo]\nbar baz\n"))))
 
 ;; Test ednc--format-summary:
 (ert-deftest ednc--format-summary-test ()
