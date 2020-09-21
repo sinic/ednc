@@ -15,6 +15,8 @@
 ;; along with this program.  If not, see <https://www.gnu.org/licenses/>.
 (require 'ednc)
 
+(require 'notifications)
+
 ;; Load the use cases documented in README.org:
 (require 'ob-tangle)
 (load-file (car (org-babel-tangle-file "README.org")))
@@ -34,31 +36,30 @@
      (if (get-buffer ednc-log-name)
          (kill-buffer ednc-log-name))))
 
-(defconst ednc--default-test-alist
-  '((app-name . "test") (replaces-id . 0) (app-icon) (summary . "foo")
-    (body . "bar baz")  (actions . ("default" "qux" "other" "quux"))
-    (hints) (expire-timeout . 0)))
+(defconst ednc--default-test-args
+  '(:title "foo" :body "bar baz" :app-name "test" :replaces-id 0 :app-icon nil
+           :actions ("default" "qux" "other" "quux") :timeout 0))
 
-(defun ednc--get-test-args (&rest override-alist)
-  (let ((alist (append override-alist ednc--default-test-alist)))
-    (mapcar (lambda (key) (alist-get key alist))
-            (mapcar #'car ednc--default-test-alist))))
+(defun ednc--test-arg-matches (notification slot plist prop)
+  (should (equal (cl-struct-slot-value 'ednc-notification slot notification)
+                 (plist-get plist prop))))
 
 (defun ednc--test-args-match (id args)
   (let ((found (cl-find id (cdr ednc--state) :key #'ednc-notification-id)))
-    (dolist (property (mapcar #'car ednc--default-test-alist))
-      (let ((arg (car args)))
-        (cond ((eq property 'app-icon))
-              ((eq property 'replaces-id)
-               (if (zerop arg) (should-not (zerop (ednc-notification-id found)))
-                 (should (= arg (ednc-notification-id found)))))
-              ((eq property 'expire-timeout)
-               (if (zerop arg)
-                   (should-not (ednc-notification-timer found))
-                 (should (timerp (ednc-notification-timer found)))))
-              (t (should (equal arg (cl-struct-slot-value 'ednc-notification
-                                                          property found)))))
-        (setq args (cdr args))))))
+    (ednc--test-arg-matches found 'summary args :title)
+    (if (plist-get args :body)
+        (ednc--test-arg-matches found 'body args :body))
+    (ednc--test-arg-matches found 'app-name args :app-name)
+    (if (zerop (plist-get args :replaces-id))
+        (should-not (zerop (ednc-notification-id found)))
+      (ednc--test-arg-matches found 'id args :replaces-id))
+    ;(ednc--test-arg-matches found 'app-icon args :app-icon)
+    (ednc--test-arg-matches found 'actions args :actions)
+    (if (zerop (plist-get args :timeout))
+        (should-not (ednc-notification-timer found))
+      (should (timerp (ednc-notification-timer found))))
+    (should (ednc-notification-client found))
+    (should (ednc-notification-parent found))))
 
 (defun ednc--test-state-consistency ()
   (let ((distinct (car ednc--state))
@@ -79,33 +80,18 @@
 (ert-deftest ednc--with-temporary-server-test ()
   (ednc--with-temp-server))  ; no real test yet
 
-(ert-deftest ednc--get-default-test-arguments-test ()
-  (let ((args (ednc--get-test-args)))
-    (dolist (expected (mapcar #'cdr ednc--default-test-alist))
-      (should (equal (car args) expected))  ; with all the default arguments?
-      (setq args (cdr args)))))
-
-(ert-deftest ednc--get-overridden-test-arguments-test ()
-  (let ((args (ednc--get-test-args '(app-name . "tes1") '(replaces-id . 42))))
-    (should (equal (car args) "tes1"))  ; with overridden string argument,
-    (should (equal (cadr args) 42))  ; overridden integer argument,
-    (setq args (cddr args))
-    (dolist (expected (mapcar #'cdr (cddr ednc--default-test-alist)))
-      (should (equal (car args) expected))  ; and default arguments otherwise?
-      (setq args (cdr args)))))
-
 (ert-deftest ednc--test-match-of-matching-arguments-test ()
   (ednc--with-temp-server
-    (let* ((args (ednc--get-test-args '(body . "baz bar")))
-           (id (apply #'ednc--notify args))
+    (let* ((args (nconc (list :body "baz bar") ednc--default-test-args))
+           (id (apply #'notifications-notify args))
            (test (make-ert-test
                   :body (lambda () (ednc--test-args-match id args)))))
       (should (ert-test-passed-p (ert-run-test test))))))
 
 (ert-deftest ednc--test-match-of-mismatching-arguments-test ()
   (ednc--with-temp-server
-    (let* ((args (ednc--get-test-args '(body . "baz bar")))
-           (id (apply #'ednc--notify (ednc--get-test-args)))
+    (let* ((args (nconc (list :body "baz bar") ednc--default-test-args))
+           (id (apply #'notifications-notify ednc--default-test-args))
            (test (make-ert-test
                   :body (lambda () (ednc--test-args-match id args)))))
       (should-error (ert-test-passed-p (ert-run-test test))))))
@@ -133,15 +119,15 @@
 
 (ert-deftest ednc--list-single-notification-test ()
   (ednc--with-temp-server
-    (apply #'ednc--notify (ednc--get-test-args))
+    (apply #'notifications-notify ednc--default-test-args)
     (should (string-equal (list-notifications) " [test: foo]
 bar baz
 "))))
 
 (ert-deftest ednc--list-multiple-notifications-test ()
   (ednc--with-temp-server
-    (apply #'ednc--notify (ednc--get-test-args))
-    (apply #'ednc--notify (ednc--get-test-args '(app-name . "tes1")))
+    (apply #'notifications-notify ednc--default-test-args)
+    (apply #'notifications-notify :app-name "tes1" ednc--default-test-args)
     (should (string-equal (list-notifications) " [tes1: foo]
 bar baz
  [test: foo]
@@ -155,20 +141,20 @@ bar baz
 
 (ert-deftest ednc--stack-hidden-notification-test ()
   (ednc--with-temp-server
-    (apply #'ednc--notify (ednc--get-test-args))
+    (apply #'notifications-notify ednc--default-test-args)
     (should (string-equal "" (stack-notifications '("test"))))))
 
 (ert-deftest ednc--stack-for-single-notification-test ()
   (ednc--with-temp-server
-    (apply #'ednc--notify (ednc--get-test-args))
+    (apply #'notifications-notify ednc--default-test-args)
     (should (string-equal (stack-notifications) " [test: foo]
 bar baz
 "))))
 
 (ert-deftest ednc--stack-non-stacking-notifications-test ()
   (ednc--with-temp-server
-    (apply #'ednc--notify (ednc--get-test-args))
-    (apply #'ednc--notify (ednc--get-test-args '(app-name . "tes1")))
+    (apply #'notifications-notify ednc--default-test-args)
+    (apply #'notifications-notify :app-name "tes1" ednc--default-test-args)
     (should (string-equal (stack-notifications) " [tes1: foo]
 bar baz
  [test: foo]
@@ -177,8 +163,8 @@ bar baz
 
 (ert-deftest ednc--stack-stacking-notifications-test ()
   (ednc--with-temp-server
-    (apply #'ednc--notify (ednc--get-test-args))
-    (apply #'ednc--notify (ednc--get-test-args '(summary . "bar")))
+    (apply #'notifications-notify ednc--default-test-args)
+    (apply #'notifications-notify :title "bar" ednc--default-test-args)
     (should (string-equal (stack-notifications) " [test: bar]
 bar baz
 "))))
@@ -186,7 +172,7 @@ bar baz
 ;; Test use case show-notification-in-buffer:
 (ert-deftest ednc--show-notification-in-buffer-test ()
   (ednc--with-temp-server
-    (apply #'ednc--notify (ednc--get-test-args))
+    (apply #'notifications-notify ednc--default-test-args)
     (with-temp-buffer
       (rename-buffer "Notification 1")
       (show-notification-in-buffer nil (cadr ednc--state))
@@ -197,7 +183,7 @@ bar baz
 ;; Test logging:
 (ert-deftest ednc--log-single-notification-test ()
   (ednc--with-temp-server
-    (apply #'ednc--notify (ednc--get-test-args))
+    (apply #'notifications-notify ednc--default-test-args)
     (ednc--update-log-buffer nil (cadr ednc--state))
     (with-current-buffer ednc-log-name
       (should (string-equal (buffer-string) " [test: foo]
@@ -207,9 +193,9 @@ bar baz
 
 (ert-deftest ednc--log-multiple-notifications-test ()
     (ednc--with-temp-server
-      (apply #'ednc--notify (ednc--get-test-args))
+      (apply #'notifications-notify ednc--default-test-args)
       (ednc--update-log-buffer nil (cadr ednc--state))
-      (apply #'ednc--notify (ednc--get-test-args '(app-name . "tes1")))
+      (apply #'notifications-notify :app-name "tes1" ednc--default-test-args)
       (ednc--update-log-buffer nil (cadr ednc--state))
       (with-current-buffer ednc-log-name
         (should (string-equal (buffer-string) " [test: foo]
@@ -222,11 +208,11 @@ bar baz
 
 (ert-deftest ednc--log-closed-notifications-test ()
   (ednc--with-temp-server
-    (let* ((id (apply #'ednc--notify (ednc--get-test-args)))
+    (let* ((id (apply #'notifications-notify ednc--default-test-args))
            (notification (cl-find id (cdr ednc--state)
                                   :key #'ednc-notification-id)))
       (ednc--update-log-buffer nil notification)
-      (apply #'ednc--notify (ednc--get-test-args '(app-name . "tes1")))
+      (apply #'notifications-notify :app-name "tes1" ednc--default-test-args)
       (ednc--update-log-buffer nil (cadr ednc--state))
       (ednc--close-notification (cadr ednc--state) 3)
       (ednc--update-log-buffer notification nil)
@@ -243,11 +229,11 @@ bar baz
 
 (ert-deftest ednc--log-replaced-notifications-test ()
   (ednc--with-temp-server
-    (let* ((id (apply #'ednc--notify (ednc--get-test-args)))
+    (let* ((id (apply #'notifications-notify ednc--default-test-args))
            (notification (cl-find id (cdr ednc--state)
                                   :key #'ednc-notification-id)))
       (ednc--update-log-buffer nil notification)
-      (apply #'ednc--notify (ednc--get-test-args `(replaces-id . ,id)))
+      (apply #'notifications-notify :replaces-id id ednc--default-test-args)
       (ednc--update-log-buffer notification (cadr ednc--state))
       (with-current-buffer ednc-log-name
         (should (string-equal (buffer-string) " [test: foo]
@@ -263,25 +249,25 @@ bar baz
 ;; Test ednc-invoke-action:
 (ert-deftest ednc--invoke-default-action-test ()
   (ednc--with-temp-server
-    (apply #'ednc--notify (ednc--get-test-args))
+    (apply #'notifications-notify ednc--default-test-args)
     (ednc-invoke-action (cadr ednc--state))))  ; no real test yet
 
 (ert-deftest ednc--invoke-alternative-action-test ()
   (ednc--with-temp-server
-    (apply #'ednc--notify (ednc--get-test-args))
+    (apply #'notifications-notify ednc--default-test-args)
     (ednc-invoke-action (cadr ednc--state) "other")))  ; no real test yet
 
 ;; Test ednc--close-notification:
 (ert-deftest ednc--close-notification-test ()
   (ednc--with-temp-server
-    (let ((id (apply #'ednc--notify (ednc--get-test-args))))
+    (let ((id (apply #'notifications-notify ednc--default-test-args)))
       (ednc--close-notification (cadr ednc--state) 3)
       (should-not (cl-find id (cdr ednc--state) :key #'ednc-notification-id)))))
 
 ;; Test ednc--format-notification:
 (ert-deftest ednc--format-notification-test ()
   (ednc--with-temp-server
-    (apply #'ednc--notify (ednc--get-test-args))
+    (apply #'notifications-notify ednc--default-test-args)
     (should (string-equal (ednc-format-notification (cadr ednc--state))
                           " [test: foo]
 bar baz
@@ -290,7 +276,7 @@ bar baz
 ;; Test ednc--format-summary:
 (ert-deftest ednc--format-summary-test ()
   (ednc--with-temp-server
-    (apply #'ednc--notify (ednc--get-test-args))
+    (apply #'notifications-notify ednc--default-test-args)
     (let* ((new (cadr ednc--state))
            (result (ednc--format-summary new)))
       (should (string-equal result (ednc-notification-summary new))))))
@@ -298,7 +284,7 @@ bar baz
 ;; Test ednc--get-actions-keymap:
 (ert-deftest ednc--get-empty-actions-keymap-test ()
   (ednc--with-temp-server
-    (apply #'ednc--notify (ednc--get-test-args '(actions)))
+    (apply #'notifications-notify :actions nil ednc--default-test-args)
     (let* ((new (cadr ednc--state))
            (result (ednc--get-actions-keymap new)))
       (should (eq (car result) 'keymap))
@@ -306,7 +292,7 @@ bar baz
 
 (ert-deftest ednc--get-actions-keymap-test ()
   (ednc--with-temp-server
-    (apply #'ednc--notify (ednc--get-test-args))
+    (apply #'notifications-notify ednc--default-test-args)
     (let* ((new (cadr ednc--state))
            (result (ednc--get-actions-keymap new)))
       (should (eq (car result) 'keymap))
@@ -323,51 +309,50 @@ bar baz
 ;; Test handler of Notify:
 (ert-deftest ednc--handle-notify-test ()
   (ednc--with-temp-server
-    (let ((id (apply #'ednc--dbus-talk 'dbus-call-method "Notify"
-                     (ednc--get-test-args))))
-      (ednc--test-args-match id (ednc--get-test-args)))))
+    (let ((id (apply #'notifications-notify ednc--default-test-args)))
+      (ednc--test-args-match id ednc--default-test-args))))
 
 (ert-deftest ednc--handle-notify-with-expiration-time-test ()
   (ednc--with-temp-server
     (let* ((timeout 5)
-           (args (ednc--get-test-args `(expire-timeout . ,timeout)))
-           (id (apply #'ednc--dbus-talk 'dbus-call-method "Notify" args)))
+           (args (nconc (list :timeout timeout) ednc--default-test-args))
+           (id (apply #'notifications-notify args)))
       (ednc--test-args-match id args)
       (sleep-for (/ (* 2 timeout) 1000.0))
       (should-not (cl-find id (cdr ednc--state) :key #'ednc-notification-id)))))
 
 (ert-deftest ednc--handle-notify-replace-test ()
   (ednc--with-temp-server
-    (let* ((id (apply #'ednc--notify (ednc--get-test-args)))
-           (args (ednc--get-test-args `(replaces-id . ,id))))
-      (apply #'ednc--dbus-talk 'dbus-call-method "Notify" args)
+    (let* ((id (apply #'notifications-notify ednc--default-test-args))
+           (args (nconc (list :replaces-id id) ednc--default-test-args)))
+      (apply #'notifications-notify args)
       (ednc--test-args-match id args))))
 
 (ert-deftest ednc--handle-notify-replace-nonexistent-test ()
   (ednc--with-temp-server
-    (let* ((id (apply #'ednc--notify (ednc--get-test-args)))
-           (args (ednc--get-test-args `(replaces-id . ,(+ 5 id)))))
-      (ednc--test-args-match id (ednc--get-test-args))
-      (setq id (apply #'ednc--dbus-talk 'dbus-call-method "Notify" args))
-      (ednc--test-args-match id (ednc--get-test-args)))))
+    (let* ((id (apply #'notifications-notify ednc--default-test-args))
+           (args (nconc (list :replaces-id (+ 5 id)) ednc--default-test-args)))
+      (ednc--test-args-match id ednc--default-test-args)
+      (setq id (apply #'notifications-notify args))
+      (ednc--test-args-match id ednc--default-test-args))))
 
 ;; Test handler of CloseNotification:
 (ert-deftest ednc--handle-close-notification-test ()
   (ednc--with-temp-server
-    (let ((id (apply #'ednc--notify (ednc--get-test-args))))
+    (let ((id (apply #'notifications-notify ednc--default-test-args)))
       (ednc--dbus-talk 'dbus-call-method "CloseNotification" id)
       (should-not (cl-find id (cdr ednc--state) :key #'ednc-notification-id)))))
 
 (ert-deftest ednc--handle-close-previously-closed-notification-test ()
   (ednc--with-temp-server
-    (let ((id (apply #'ednc--notify (ednc--get-test-args))))
+    (let ((id (apply #'notifications-notify ednc--default-test-args)))
       (ednc--dbus-talk 'dbus-call-method "CloseNotification" id)
       (should-error (ednc--dbus-talk 'dbus-call-method "CloseNotification"
                                      id)))))
 
 (ert-deftest ednc--handle-close-nonexistent-notification-test ()
   (ednc--with-temp-server
-    (let ((unused (1+ (apply #'ednc--notify (ednc--get-test-args)))))
+    (let ((unused (1+ (apply #'notifications-notify ednc--default-test-args))))
       (should-error (ednc--dbus-talk 'dbus-call-method "CloseNotification"
                                      unused)))))
 
