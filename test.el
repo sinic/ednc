@@ -362,18 +362,15 @@ bar baz
 ;; Test informational handlers:
 (ert-deftest ednc--handle-get-server-information-test ()
   (ednc--with-temp-server
-    (let ((info (ednc--dbus-talk 'dbus-call-method "GetServerInformation")))
+    (let ((info (notifications-get-server-information)))
       (should (and (listp info) (= (length info) 4)))  ; correct aggregate type
       (dolist (field info)
         (should (stringp field))))))  ; and correct types in aggregate?
 
 (ert-deftest ednc--handle-get-capabilities-test ()
   (ednc--with-temp-server
-    (let ((capabilities (ednc--dbus-talk 'dbus-call-method "GetCapabilities")))
-      (should (listp capabilities))  ; correct aggregate type?
-      (dolist (capability capabilities)
-        (should (stringp capability)))  ; correct types in aggregate,
-      (dolist (required '("actions" "body"))  ; and minimal feature set?
+    (let ((capabilities (notifications-get-capabilities)))
+      (dolist (required '(:actions :body))  ; minimal feature set?
         (should (member required capabilities))))))
 
 ;; Test ednc--get-hint:
