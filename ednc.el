@@ -101,9 +101,9 @@ ACTION defaults to the key \"default\"."
   (interactive (list (get-text-property (point) 'ednc-notification)))
   (unless (and notification (ednc-notification-parent notification))
     (user-error "No active notification at point"))
-  (ednc--dbus-talk-to (ednc-notification-client notification) 'dbus-send-signal
-                      "ActionInvoked" (ednc-notification-id notification)
-                      (or action "default")))
+  (dbus-send-signal :session (ednc-notification-client notification)
+                    ednc--path ednc--interface "ActionInvoked"
+                    (ednc-notification-id notification) (or action "default")))
 
 (defun ednc-dismiss-notification (notification)
   "Dismiss the NOTIFICATION."
@@ -139,9 +139,9 @@ With a non-nil PREFIX, make those details visible unconditionally."
   "Close the NOTIFICATION for REASON."
   (run-hook-with-args 'ednc-notification-presentation-functions
                       (ednc--delete-notification notification) nil)
-  (ednc--dbus-talk-to (ednc-notification-client notification) 'dbus-send-signal
-                      "NotificationClosed" (ednc-notification-id notification)
-                      reason))
+  (dbus-send-signal :session (ednc-notification-client notification)
+                    ednc--path ednc--interface "NotificationClosed"
+                    (ednc-notification-id notification) reason))
 
 (defun ednc-format-notification (notification &optional expanded)
   "Return propertized description of NOTIFICATION.
@@ -199,7 +199,8 @@ If EXPANDED is nil, make details invisible by default."
                   ("GetServerInformation"
                    ,(lambda () (list "EDNC" "sinic" "0.1" "1.2")) t)
                   ("GetCapabilities" ,(lambda () '(("body" "actions"))) t)))
-    (apply #'ednc--dbus-talk 'dbus-register-method args))
+    (apply #'dbus-register-method :session
+           ednc--service ednc--path ednc--interface args))
   (dbus-register-service :session ednc--service))
 
 (defun ednc--stop-server ()
@@ -305,23 +306,6 @@ This function is destructive."
     (let ((next (caddr suffix)))
       (if next (setf (ednc-notification-parent next) suffix)))
     (pop (cdr suffix))))
-
-(defun ednc--dbus-talk-to (service symbol &rest rest)
-  "Help with most actions involving D-Bus service SERVICE.
-
-If SERVICE is nil, then a service name is derived from `last-input-event'.
-
-SYMBOL describes a D-Bus function (e.g., `dbus-call-method'),
-REST contains the remaining arguments to that function."
-  (apply symbol :session (or service (dbus-event-service-name last-input-event))
-         ednc--path ednc--interface rest))
-
-(defun ednc--dbus-talk (symbol &rest rest)
-  "Help with most actions involving D-Bus service `ednc--service'.
-
-SYMBOL describes a D-Bus function (e.g., `dbus-call-method'),
-REST contains the remaining arguments to that function."
-  (apply #'ednc--dbus-talk-to ednc--service symbol rest))
 
 (defun ednc-pop-to-notification-in-log-buffer (notification)
   "Pop to NOTIFICATION in its log buffer, if it exists."
