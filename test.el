@@ -167,9 +167,7 @@ bar baz
     (with-temp-buffer
       (rename-buffer "Notification 1")
       (show-notification-in-buffer nil (cadr ednc--state))
-      (should (string-equal (buffer-string) " [test: foo]
-bar baz
-")))))
+      (should (string-equal (buffer-string) " [test: foo]\nbar baz\n")))))
 
 ;; Test logging:
 (ert-deftest ednc--log-single-notification-test ()
@@ -177,10 +175,7 @@ bar baz
     (apply #'notifications-notify ednc--default-test-args)
     (ednc--update-log-buffer nil (cadr ednc--state))
     (with-current-buffer ednc-log-name
-      (should (string-equal (buffer-string) " [test: foo]
-bar baz
-
-")))))
+      (should (string-equal (buffer-string) " [test: foo]\nbar baz\n\n")))))
 
 (ert-deftest ednc--log-multiple-notifications-test ()
     (ednc--with-temp-server
