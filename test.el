@@ -142,9 +142,7 @@
 (ert-deftest ednc--stack-for-single-notification-test ()
   (ednc--with-temp-server
     (apply #'notifications-notify ednc--default-test-args)
-    (should (string-equal (stack-notifications) " [test: foo]
-bar baz
-"))))
+    (should (string-equal (stack-notifications) " [test: foo]\nbar baz\n"))))
 
 (ert-deftest ednc--stack-non-stacking-notifications-test ()
   (ednc--with-temp-server
