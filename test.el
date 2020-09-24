@@ -221,14 +221,14 @@
 (ert-deftest ednc--invoke-default-action-test ()
   (ednc--with-temp-server
     (apply #'notifications-notify
-           :on-action (lambda (id key) (should (string-equal key "default")))
+           :on-action (lambda (_id key) (should (string-equal key "default")))
            ednc--default-test-args)
     (ednc-invoke-action (cadr ednc--state))))
 
 (ert-deftest ednc--invoke-alternative-action-test ()
   (ednc--with-temp-server
     (apply #'notifications-notify
-           :on-action (lambda (id key) (should (string-equal key "other")))
+           :on-action (lambda (_id key) (should (string-equal key "other")))
            ednc--default-test-args)
     (ednc-invoke-action (cadr ednc--state) "other")))
 
@@ -237,7 +237,7 @@
   (ednc--with-temp-server
     (dolist (pair notifications-closed-reason)
       (let ((id (apply #'notifications-notify
-                       :on-close (lambda (id reason)
+                       :on-close (lambda (_id reason)
                                    (should (eq reason (cadr pair))))
                        ednc--default-test-args)))
         (ednc--close-notification (cadr ednc--state) (car pair))
