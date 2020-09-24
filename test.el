@@ -235,12 +235,14 @@
 ;; Test ednc--close-notification:
 (ert-deftest ednc--close-notification-test ()
   (ednc--with-temp-server
-    (let ((id (apply #'notifications-notify
-                     :on-close (lambda (id reason)
-                                 (should (eq reason 'close-notification)))
-                     ednc--default-test-args)))
-      (ednc--close-notification (cadr ednc--state) 3)
-      (should-not (cl-find id (cdr ednc--state) :key #'ednc-notification-id)))))
+    (dolist (pair notifications-closed-reason)
+      (let ((id (apply #'notifications-notify
+                       :on-close (lambda (id reason)
+                                   (should (eq reason (cadr pair))))
+                       ednc--default-test-args)))
+        (ednc--close-notification (cadr ednc--state) (car pair))
+        (should-not (cl-find id (cdr ednc--state)
+                             :key #'ednc-notification-id))))))
 
 ;; Test ednc--format-notification:
 (ert-deftest ednc--format-notification-test ()
