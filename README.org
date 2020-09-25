@@ -84,7 +84,7 @@ every time a new notification appears, or an old one is removed:
 
 If you want to create a new buffer for every new notification
 (instead of or in addition to displaying it in the mode line)
-first define a function uses of the abnormal hook's arguments:
+first define a function that uses the abnormal hook's arguments:
 #+NAME: buffer
 #+BEGIN_SRC emacs-lisp :tangle yes
 (defun show-notification-in-buffer (old new)
