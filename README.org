@@ -1,3 +1,4 @@
+#+STARTUP: showall
 * The Emacs Desktop Notification Center
 
 The Emacs Desktop Notification Center (EDNC) is
