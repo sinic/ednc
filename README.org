@@ -31,7 +31,7 @@ Some clients (e.g., web browsers) check for a notification server on startup
 and thus need to be reopened after enabling EDNC.
 
 In the log buffer, you can use the following key bindings by default:
-- @@html:<kbd>@@Return@@html:</kbd>@@ or @@html:<kbd>@@mouse-1@@html:</kbd>@@
+- @@html:<kbd>@@RET@@html:</kbd>@@ or @@html:<kbd>@@mouse-1@@html:</kbd>@@
   (left click) invokes the notification's default action (~ednc-invoke-action~),
 - @@html:<kbd>@@C-mouse-1@@html:</kbd>@@
   pops to the notification in the interactive log buffer
