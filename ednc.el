@@ -58,8 +58,8 @@
     (ednc--start-server)))
 
 (defvar ednc-notification-amendment-functions
-  (list #'ednc--add-mouse-controls #'ednc--add-log-mouse-controls
-        #'ednc--set-image)
+  (list #'ednc--amend-mouse-controls #'ednc--amend-log-mouse-controls
+        #'ednc--amend-icon)
   "Functions in this list are called to amend data to notifications.
 
 Their only argument is the newly added notification.")
@@ -167,8 +167,8 @@ If EXPANDED is nil, make details invisible by default."
                 `(keymap (header-line keymap . ,controls)
                          (mode-line keymap . ,controls) . ,controls))))
 
-(defun ednc--add-mouse-controls (new)
-  "Set default mouse controls of NEW notification."
+(defun ednc--amend-mouse-controls (new)
+  "Amend default mouse controls to NEW notification."
   (setf (alist-get 'controls (ednc-notification-amendments new))
         (nconc `((mouse-1 . ,(lambda () (interactive) (ednc-invoke-action new)))
                  (down-mouse-2 . ,(ednc--get-actions-keymap new))
@@ -176,8 +176,8 @@ If EXPANDED is nil, make details invisible by default."
                                (ednc-dismiss-notification new))))
                (alist-get 'controls (ednc-notification-amendments new)))))
 
-(defun ednc--add-log-mouse-controls (new)
-  "Add mouse controls for log navigation to NEW notification."
+(defun ednc--amend-log-mouse-controls (new)
+  "Amend mouse controls for log navigation to NEW notification."
   (push `(C-mouse-1 . ,(lambda () (interactive)
                          (ednc-pop-to-notification-in-log-buffer new)))
         (alist-get 'controls (ednc-notification-amendments new))))
@@ -232,8 +232,8 @@ are the received values as described in the Desktop Notification standard."
     (run-hook-with-args 'ednc-notification-presentation-functions old new)
     id))
 
-(defun ednc--set-image (new)
-  "Set image string created from NEW notification.
+(defun ednc--amend-icon (new)
+  "Set icon string created from NEW notification.
 
 This function modifies the notification's hints."
   (catch 'invalid
