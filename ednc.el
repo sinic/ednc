@@ -236,16 +236,17 @@ are the received values as described in the Desktop Notification standard."
   "Set image string created from NEW notification.
 
 This function modifies the notification's hints."
-  (let* ((hints (ednc-notification-hints new))
-         (image
-          (or (ednc--data-to-image (ednc--get-hint hints "image-data" t))
-              (ednc--path-to-image (ednc--get-hint hints "image-path" t))
-              (ednc--path-to-image (ednc-notification-app-icon new))
-              (ednc--data-to-image (ednc--get-hint hints "icon_data" t)))))
-    (if image (setf (image-property image :max-height) (line-pixel-height)
-                    (image-property image :ascent) 90))
-    (push (cons 'icon (propertize " " 'display image))
-          (ednc-notification-amendments new))))
+  (catch 'invalid
+    (let* ((hints (ednc-notification-hints new))
+           (image
+            (or (ednc--data-to-image (ednc--get-hint hints "image-data" t))
+                (ednc--path-to-image (ednc--get-hint hints "image-path" t))
+                (ednc--path-to-image (ednc-notification-app-icon new))
+                (ednc--data-to-image (ednc--get-hint hints "icon_data" t)))))
+      (if image (setf (image-property image :max-height) (line-pixel-height)
+                      (image-property image :ascent) 90))
+      (push (cons 'icon (propertize " " 'display image))
+            (ednc-notification-amendments new)))))
 
 (defun ednc--get-hint (hints key &optional remove)
   "Return and delete from HINTS the value specified by KEY.
@@ -258,10 +259,12 @@ The returned value is removed from HINTS if REMOVE is non-nil."
 
 (defun ednc--path-to-image (image-path)
   "Return image descriptor created from file URI IMAGE-PATH."
-  (let ((prefix "file://"))
-    (if (and (stringp image-path) (> (length image-path) (length prefix))
-             (string-equal (substring image-path 0 (length prefix)) prefix))
-        (create-image (substring image-path (length prefix))))))
+  (if image-path
+      (let ((prefix "file://"))
+        (if (and (> (length image-path) (length prefix))
+                 (string-equal (substring image-path 0 (length prefix)) prefix))
+            (create-image (substring image-path (length prefix)))
+          (throw 'invalid (message "unsupported image path: %s" image-path))))))
 
 (defun ednc--data-to-image (image-data)
   "Return image descriptor created from raw (iiibiiay) IMAGE-DATA.
@@ -270,7 +273,8 @@ This function is destructive."
   (if image-data
       (cl-destructuring-bind (width height row-stride _ bit-depth channels data)
           image-data
-        (when (and (= bit-depth 8) (<= 3 channels 4))
+        (if (not (and (= bit-depth 8) (<= 3 channels 4)))
+            (throw 'invalid (message "unsupported image parameters"))
           (ednc--delete-padding data (* channels width) row-stride)
           (ednc--delete-padding data 3 channels)
           (let ((header (format "P6\n%d %d\n255\n" width height)))

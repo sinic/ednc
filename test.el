@@ -370,19 +370,19 @@
   (should-not (ednc--data-to-image nil)))
 
 (ert-deftest ednc--test-unsupported-paths-to-image ()
-  (should-not (ednc--path-to-image "/ne"))  ; no schema, shorter than "file://",
-  (should-not (ednc--path-to-image "/nonexistent"))  ; and longer than "file://"
-  (should-not (ednc--path-to-image
-               "https://www.gnu.org/software/emacs/images/emacs.png")))
+  (should-error (ednc--path-to-image "/ne"))  ; without any schema, shorter and
+  (should-error (ednc--path-to-image "/nonexistent"))  ; longer than "file://"
+  (should-error (ednc--path-to-image  ; with unsupported schema
+                 "https://www.gnu.org/software/emacs/images/emacs.png")))
 
 (ert-deftest ednc--nonexistent-path-to-image-test ()
   (should-not (ednc--path-to-image "file:///nonexistent")))
 
 (ert-deftest ednc--unsupported-data-to-image-test ()
   (let ((raw (append "abcABCxyzXYZ" nil)))
-    (should-not (ednc--data-to-image (list 2 2 6 t 7 3 raw)))  ; bit-depth
-    (should-not (ednc--data-to-image (list 2 2 6 t 8 2 raw)))  ; non-RGB(A)
-    (should-not (ednc--data-to-image (list 2 2 6 t 8 5 raw)))))
+    (should-error (ednc--data-to-image (list 2 2 6 t 7 3 raw)))  ; bit-depth
+    (should-error (ednc--data-to-image (list 2 2 6 t 8 2 raw)))  ; non-RGB(A)
+    (should-error (ednc--data-to-image (list 2 2 6 t 8 5 raw)))))
 
 (ert-deftest ednc--data-to-image-test ()
   (let* ((expect "P6\n2 2\n255\nabcABCxyzXYZ")
