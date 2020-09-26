@@ -370,12 +370,12 @@
   (should-not (ednc--data-to-image nil)))
 
 (ert-deftest ednc--test-unsupported-paths-to-image ()
-  (should-error (ednc--path-to-image "/ne"))  ; without any schema, shorter and
-  (should-error (ednc--path-to-image "/nonexistent"))  ; longer than "file://"
   (should-error (ednc--path-to-image  ; with unsupported schema
                  "https://www.gnu.org/software/emacs/images/emacs.png")))
 
 (ert-deftest ednc--nonexistent-path-to-image-test ()
+  (should-not (ednc--path-to-image ""))
+  (should-not (ednc--path-to-image "/nonexistent"))
   (should-not (ednc--path-to-image "file:///nonexistent")))
 
 (ert-deftest ednc--unsupported-data-to-image-test ()

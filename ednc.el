@@ -259,11 +259,12 @@ The returned value is removed from HINTS if REMOVE is non-nil."
 
 (defun ednc--path-to-image (image-path)
   "Return image descriptor created from file URI IMAGE-PATH."
-  (if image-path
+  (if (and image-path (not (string-equal image-path "")))
       (let ((prefix "file://"))
         (if (and (> (length image-path) (length prefix))
                  (string-equal (substring image-path 0 (length prefix)) prefix))
-            (create-image (substring image-path (length prefix)))
+            (setq image-path (substring image-path (length prefix))))
+        (if (eq (aref image-path 0) ?/) (create-image image-path)
           (throw 'invalid (message "unsupported image path: %s" image-path))))))
 
 (defun ednc--data-to-image (image-data)
