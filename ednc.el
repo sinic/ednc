@@ -243,10 +243,10 @@ This function modifies the notification's hints."
                 (ednc--path-to-image (ednc--get-hint hints "image-path" t))
                 (ednc--path-to-image (ednc-notification-app-icon new))
                 (ednc--data-to-image (ednc--get-hint hints "icon_data" t)))))
-      (if image (setf (image-property image :max-height) (line-pixel-height)
-                      (image-property image :ascent) 90))
-      (push (cons 'icon (propertize " " 'display image))
-            (ednc-notification-amendments new)))))
+      (when image (setf (image-property image :max-height) (line-pixel-height)
+                        (image-property image :ascent) 90)
+            (push (cons 'icon (propertize " " 'display image))
+                  (ednc-notification-amendments new))))))
 
 (defun ednc--get-hint (hints key &optional remove)
   "Return and delete from HINTS the value specified by KEY.
