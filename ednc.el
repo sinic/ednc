@@ -264,7 +264,10 @@ The returned value is removed from HINTS if REMOVE is non-nil."
         (if (and (> (length image-path) (length prefix))
                  (string-equal (substring image-path 0 (length prefix)) prefix))
             (setq image-path (substring image-path (length prefix))))
-        (if (eq (aref image-path 0) ?/) (create-image image-path)
+        (if (eq (aref image-path 0) ?/)
+            (with-temp-buffer (set-buffer-multibyte nil)
+                              (ignore-errors (insert-file-contents image-path))
+                              (create-image (buffer-string) nil t))
           (throw 'invalid (message "unsupported image path: %s" image-path))))))
 
 (defun ednc--data-to-image (image-data)
