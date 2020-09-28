@@ -161,11 +161,36 @@
 ;; Test use case show-notification-in-buffer:
 (ert-deftest ednc--show-notification-in-buffer-test ()
   (ednc--with-temp-server
-    (apply #'notifications-notify ednc--default-test-args)
-    (with-temp-buffer
-      (rename-buffer "Notification 1")
-      (show-notification-in-buffer nil (cadr ednc--state))
-      (should (string-equal (buffer-string) " [test: foo]\nbar baz\n")))))
+    (let ((id (apply #'notifications-notify ednc--default-test-args)))
+      (with-temp-buffer
+        (rename-buffer (format "Notification %d" id))
+        (show-notification-in-buffer nil (cadr ednc--state))
+        (should (string-equal (buffer-string) " [test: foo]\nbar baz\n"))))))
+
+(ert-deftest ednc--show-replaced-notification-in-buffer-test ()
+  (ednc--with-temp-server
+    (let* ((id (apply #'notifications-notify ednc--default-test-args))
+           (old (cadr ednc--state)))
+      (with-temp-buffer
+        (rename-buffer (format "Notification %d" id))
+        (show-notification-in-buffer nil old)
+        (apply #'notifications-notify :body "corge" :replaces-id id
+               ednc--default-test-args)
+        (show-notification-in-buffer old (cadr ednc--state))
+        (should (string-equal (buffer-string) " [test: foo]\ncorge\n"))))))
+
+(ert-deftest ednc--show-closed-notification-in-buffer-test ()
+  (ednc--with-temp-server
+    (let* ((id (apply #'notifications-notify ednc--default-test-args))
+           (old (cadr ednc--state))
+           (buffer))
+      (with-temp-buffer
+        (setq buffer (current-buffer))
+        (rename-buffer (format "Notification %d" id))
+        (show-notification-in-buffer nil old)
+        (notifications-close-notification id)
+        (show-notification-in-buffer old nil))
+      (should-not (buffer-live-p buffer)))))
 
 ;; Test logging:
 (ert-deftest ednc--log-single-notification-test ()
