@@ -276,6 +276,12 @@
     (should (string-equal (ednc-format-notification (cadr ednc--state))
                           " [test: foo]\nbar baz\n"))))
 
+(ert-deftest ednc--format-notification-without-body-test ()
+  (ednc--with-temp-server
+    (apply #'notifications-notify :body nil ednc--default-test-args)
+    (should (string-equal (ednc-format-notification (cadr ednc--state))
+                          " [test: foo]\n\n"))))
+
 ;; Test ednc--format-summary:
 (ert-deftest ednc--format-summary-test ()
   (ednc--with-temp-server
