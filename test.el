@@ -400,7 +400,7 @@
   (should-not (ednc--path-to-image nil))
   (should-not (ednc--data-to-image nil)))
 
-(ert-deftest ednc--test-unsupported-paths-to-image ()
+(ert-deftest ednc--unsupported-paths-to-image-test ()
   (should-error (ednc--path-to-image  ; with unsupported schema
                  "https://www.gnu.org/software/emacs/images/emacs.png")))
 
