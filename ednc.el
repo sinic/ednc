@@ -223,7 +223,7 @@ are the received values as described in the Desktop Notification standard."
                :summary summary :body body :actions actions :hints hints
                :client (dbus-event-service-name last-input-event))))
     (if old (ednc--delete-notification old))
-    (ednc--push-notification new (/ expire-timeout 1000.0))
+    (ednc--push-notification new ednc--state (/ expire-timeout 1000.0))
     (run-hook-with-args 'ednc-notification-amendment-functions new)
     (run-hook-with-args 'ednc-notification-presentation-functions old new)
     id))
@@ -294,20 +294,18 @@ This function is destructive."
         (while (cdr cell)
           (setcdr (setq cell (funcall keep cell)) (funcall delete cell))))))
 
-(defun ednc--push-notification (notification expiry)
-  "Push NOTIFICATION to parent state `ednc--state'."
-  (let ((state ednc--state))
-    (setf (ednc-notification-parent notification) state)
-    (if (> expiry 0)
-        (setf (ednc-notification-timer notification)
-              (run-at-time expiry nil #'ednc--close-notification notification
-                           1)))
-    (let ((next (cadr state)))
-      (push notification (cdr state))
-      (if next (setf (ednc-notification-parent next) (cdr state))))))
+(defun ednc--push-notification (notification state expiry)
+  "Push NOTIFICATION to STATE (expiring in EXPIRY seconds)."
+  (setf (ednc-notification-parent notification) state)
+  (if (> expiry 0)
+      (setf (ednc-notification-timer notification)
+            (run-at-time expiry nil #'ednc--close-notification notification 1)))
+  (let ((next (cadr state)))
+    (push notification (cdr state))
+    (if next (setf (ednc-notification-parent next) (cdr state)))))
 
 (defun ednc--delete-notification (notification)
-  "Delete NOTIFICATION from parent state and return it."
+  "Delete NOTIFICATION from state it was pushed to and return it."
   (let ((suffix (ednc-notification-parent notification)))
     (setf (ednc-notification-parent notification) nil)
     (let ((timer (ednc-notification-timer notification)))
