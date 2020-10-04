@@ -222,12 +222,8 @@ are the received values as described in the Desktop Notification standard."
                :id id :app-name app-name :app-icon app-icon
                :summary summary :body body :actions actions :hints hints
                :client (dbus-event-service-name last-input-event))))
-    (if (> expire-timeout 0)
-        (setf (ednc-notification-timer new)
-              (run-at-time (/ expire-timeout 1000.0) nil
-                           #'ednc--close-notification new 1)))
     (if old (ednc--delete-notification old))
-    (ednc--push-notification new)
+    (ednc--push-notification new (/ expire-timeout 1000.0))
     (run-hook-with-args 'ednc-notification-amendment-functions new)
     (run-hook-with-args 'ednc-notification-presentation-functions old new)
     id))
@@ -298,10 +294,14 @@ This function is destructive."
         (while (cdr cell)
           (setcdr (setq cell (funcall keep cell)) (funcall delete cell))))))
 
-(defun ednc--push-notification (notification)
+(defun ednc--push-notification (notification expiry)
   "Push NOTIFICATION to parent state `ednc--state'."
   (let ((state ednc--state))
     (setf (ednc-notification-parent notification) state)
+    (if (> expiry 0)
+        (setf (ednc-notification-timer notification)
+              (run-at-time expiry nil #'ednc--close-notification notification
+                           1)))
     (let ((next (cadr state)))
       (push notification (cdr state))
       (if next (setf (ednc-notification-parent next) (cdr state))))))
