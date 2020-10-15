@@ -143,10 +143,10 @@ With a non-nil PREFIX, make those details visible unconditionally."
                     ednc--path ednc--interface "NotificationClosed"
                     (ednc-notification-id notification) reason))
 
-(defun ednc-format-notification (notification &optional expanded)
+(defun ednc-format-notification (notification &optional expand-flag)
   "Return propertized description of NOTIFICATION.
 
-If EXPANDED is nil, make details invisible by default."
+If EXPAND-FLAG is nil, make details invisible by default."
   (let* ((hints (ednc-notification-hints notification))
          (urgency (or (ednc--get-hint hints "urgency") 1))
          (inherit (if (<= urgency 0) 'shadow (if (>= urgency 2) 'bold))))
@@ -156,7 +156,7 @@ If EXPANDED is nil, make details invisible by default."
             (ednc-notification-app-name notification)
             (ednc--format-summary notification)
             (propertize (concat "\n" (ednc-notification-body notification) "\n")
-                        'invisible (not expanded)))))
+                        'invisible (not expand-flag)))))
 
 (defun ednc--format-summary (notification)
   "Return propertized summary of NOTIFICATION."
@@ -244,13 +244,13 @@ This function modifies the notification's hints."
             (push (cons 'icon (propertize " " 'display image))
                   (ednc-notification-amendments new))))))
 
-(defun ednc--get-hint (hints key &optional remove)
+(defun ednc--get-hint (hints key &optional remove-flag)
   "Return and delete from HINTS the value specified by KEY.
 
-The returned value is removed from HINTS if REMOVE is non-nil."
+The returned value is removed from HINTS if REMOVE-FLAG is non-nil."
   (let* ((pair (assoc key hints))
          (tail (cdr pair)))
-    (if (and remove pair) (setcdr pair nil))
+    (if (and remove-flag pair) (setcdr pair nil))
     (caar tail)))
 
 (defun ednc--path-to-image (image-path)
