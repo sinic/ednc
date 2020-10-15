@@ -336,9 +336,10 @@ This function is destructive."
   "Append NEW notification to log buffer."
   (with-current-buffer (get-buffer-create ednc-log-name)
     (unless (derived-mode-p #'ednc-view-mode) (ednc-view-mode))
-    (save-excursion (push `(logged ,(current-buffer) . ,(goto-char (point-max)))
-                          (ednc-notification-amendments new))
-                    (insert (ednc-format-notification new) ?\n))))
+    (save-excursion
+      (push `(logged ,(current-buffer) . ,(goto-char (point-max)))
+            (ednc-notification-amendments new))
+      (insert (ednc-format-notification new) ?\n))))
 
 (defun ednc--update-log-buffer (old new)
   "Remove OLD notification from and add NEW one to log buffer."
