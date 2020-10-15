@@ -171,15 +171,15 @@ If EXPAND-FLAG is nil, make details invisible by default."
   "Amend default mouse controls to NEW notification."
   (setf (alist-get 'controls (ednc-notification-amendments new))
         (nconc `((mouse-1 . ,(lambda () (interactive) (ednc-invoke-action new)))
-                 (down-mouse-2 . ,(ednc--get-actions-keymap new))
+                 (C-down-mouse-1 . ,(ednc--get-actions-keymap new))
                  (mouse-3 . ,(lambda () (interactive)
                                (ednc-dismiss-notification new))))
                (alist-get 'controls (ednc-notification-amendments new)))))
 
 (defun ednc--amend-log-mouse-controls (new)
   "Amend mouse controls for log navigation to NEW notification."
-  (push `(C-mouse-1 . ,(lambda () (interactive)
-                         (ednc-pop-to-notification-in-log-buffer new)))
+  (push `(mouse-2 . ,(lambda () (interactive)
+                       (ednc-pop-to-notification-in-log-buffer new)))
         (alist-get 'controls (ednc-notification-amendments new))))
 
 (defun ednc--get-actions-keymap (notification)

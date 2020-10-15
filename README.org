@@ -35,11 +35,11 @@ In the log buffer, you can use the following key bindings by default:
   toggles an expanded view of the notification (~ednc-toggle-expanded-view~),
 - @@html:<kbd>@@RET@@html:</kbd>@@ or @@html:<kbd>@@mouse-1@@html:</kbd>@@
   (left click) invokes the notification's default action (~ednc-invoke-action~),
-- @@html:<kbd>@@C-mouse-1@@html:</kbd>@@
-  pops to the notification in the interactive log buffer
-  (~ednc-pop-to-notification-in-log-buffer~),
-- @@html:<kbd>@@down-mouse-2@@html:</kbd>@@
-  (middle mouse button) shows a menu of all available actions, and
+- @@html:<kbd>@@C-down-mouse-1@@html:</kbd>@@
+  shows a menu of all available actions,
+- @@html:<kbd>@@mouse-2@@html:</kbd>@@
+  (middle mouse button) pops to the notification in the interactive log buffer
+  (~ednc-pop-to-notification-in-log-buffer~), and
 - @@html:<kbd>@@d@@html:</kbd>@@ or @@html:<kbd>@@mouse-3@@html:</kbd>@@
   (right click) dismisses the notification (~ednc-dismiss-notification~).
 Mouse controls are not restricted to the log buffer.
