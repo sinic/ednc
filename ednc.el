@@ -36,6 +36,7 @@
 
 ;;; Code:
 (require 'cl-lib)
+(require 'image)
 (require 'dbus)
 
 (defconst ednc-log-name "*ednc-log*")
