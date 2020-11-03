@@ -78,7 +78,7 @@ Alternatively, only include the newest notification per application:
 Use the respective function's result as part of your mode line
 every time a new notification appears, or an old one is removed:
 #+BEGIN_SRC emacs-lisp
-(nconc global-mode-string '((:eval (stack-notifications))))  ; or list
+(nconc global-mode-string '((:eval (list-notifications))))  ; or stack
 (add-hook 'ednc-notification-presentation-functions
           (lambda (&rest _) (force-mode-line-update t)))
 #+END_SRC
