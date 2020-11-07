@@ -38,6 +38,7 @@
 (require 'cl-lib)
 (require 'image)
 (require 'dbus)
+(require 'subr-x)
 
 (defconst ednc-log-name "*ednc-log*")
 
@@ -54,7 +55,8 @@
 (define-minor-mode ednc-mode
   "Act as a Desktop Notifications server and track notifications."
   :global t :lighter " EDNC"
-  (if (not ednc-mode) (ednc--stop-server)
+  (if (not ednc-mode)
+      (ednc--stop-server)
     (with-current-buffer (get-buffer-create ednc-log-name) (ednc-view-mode))
     (ednc--start-server)))
 
@@ -120,20 +122,22 @@ With a non-nil PREFIX, make those details visible unconditionally."
   (interactive "d\nP")
   (let ((prop 'ednc-notification))
     (unless (or (get-text-property position prop)
-                (if (> position 1) (get-text-property (cl-decf position) prop)))
+                (when (> position 1)
+                  (get-text-property (cl-decf position) prop)))
       (user-error "No notification at or before position"))
     (let* ((end (or (next-single-property-change position prop) (point-max)))
            (begin (or (previous-single-property-change end prop) (point-min)))
            (eol (save-excursion (goto-char begin) (line-end-position)))
            (current (or prefix (get-text-property eol 'invisible)))
            (inhibit-read-only t))
-      (if (< eol end) (put-text-property eol end 'invisible (not current))))))
+      (when (< eol end) (put-text-property eol end 'invisible (not current))))))
 
 (defun ednc--close-notification-by-id (id)
   "Close the notification identified by ID."
-  (let ((found (cl-find id (cdr ednc--state)
-                        :test #'eq :key #'ednc-notification-id)))
-    (if found (ednc--close-notification found 3) (signal 'dbus-error nil)))
+  (if-let (found (cl-find id (cdr ednc--state)
+                          :test #'eq :key #'ednc-notification-id))
+      (ednc--close-notification found 3)
+    (signal 'dbus-error nil))
   :ignore)
 
 (defun ednc--close-notification (notification reason)
@@ -150,7 +154,7 @@ With a non-nil PREFIX, make those details visible unconditionally."
 If EXPAND-FLAG is nil, make details invisible by default."
   (let* ((hints (ednc-notification-hints notification))
          (urgency (or (ednc--get-hint hints "urgency") 1))
-         (inherit (if (<= urgency 0) 'shadow (if (>= urgency 2) 'bold))))
+         (inherit (if (<= urgency 0) 'shadow (when (>= urgency 2) 'bold))))
     (format (propertize " %s[%s: %s]%s" 'face (list :inherit inherit)
                         'ednc-notification notification)
             (alist-get 'icon (ednc-notification-amendments notification) "")
@@ -215,15 +219,15 @@ If EXPAND-FLAG is nil, make details invisible by default."
 
 APP-NAME, REPLACES-ID, APP-ICON, SUMMARY, BODY, ACTIONS, HINTS, EXPIRE-TIMEOUT
 are the received values as described in the Desktop Notification standard."
-  (let* ((old (if (> replaces-id 0)
-                  (cl-find replaces-id (cdr ednc--state)
-                           :test #'eq :key #'ednc-notification-id)))
+  (let* ((old (when (> replaces-id 0)
+                (cl-find replaces-id (cdr ednc--state)
+                         :test #'eq :key #'ednc-notification-id)))
          (id (if old replaces-id (cl-incf (car ednc--state))))
          (new (ednc--notification-create
                :id id :app-name app-name :app-icon app-icon
                :summary summary :body body :actions actions :hints hints
                :client (dbus-event-service-name last-input-event))))
-    (if old (ednc--delete-notification old))
+    (when old (ednc--delete-notification old))
     (ednc--push-notification new ednc--state (/ expire-timeout 1000.0))
     (run-hook-with-args 'ednc-notification-amendment-functions new)
     (run-hook-with-args 'ednc-notification-presentation-functions old new)
@@ -240,10 +244,11 @@ This function modifies the notification's hints."
                 (ednc--path-to-image (ednc--get-hint hints "image-path"))
                 (ednc--path-to-image (ednc-notification-app-icon new))
                 (ednc--data-to-image (ednc--get-hint hints "icon_data" t)))))
-      (when image (setf (image-property image :max-height) (line-pixel-height)
-                        (image-property image :ascent) 90)
-            (push (cons 'icon (propertize " " 'display image))
-                  (ednc-notification-amendments new))))))
+      (when image
+        (setf (image-property image :max-height) (line-pixel-height)
+              (image-property image :ascent) 90)
+        (push (cons 'icon (propertize " " 'display image))
+              (ednc-notification-amendments new))))))
 
 (defun ednc--get-hint (hints key &optional remove-flag)
   "Return and delete from HINTS the value specified by KEY.
@@ -251,56 +256,56 @@ This function modifies the notification's hints."
 The returned value is removed from HINTS if REMOVE-FLAG is non-nil."
   (let* ((pair (assoc key hints))
          (tail (cdr pair)))
-    (if (and remove-flag pair) (setcdr pair nil))
+    (when (and remove-flag pair) (setcdr pair nil))
     (caar tail)))
 
 (defun ednc--path-to-image (image-path)
   "Return image descriptor created from file URI IMAGE-PATH."
-  (if (and image-path (not (string-equal image-path "")))
-      (let ((prefix "file://"))
-        (if (and (> (length image-path) (length prefix))
+  (when (and image-path (not (string-equal image-path "")))
+    (let ((prefix "file://"))
+      (when (and (> (length image-path) (length prefix))
                  (string-equal (substring image-path 0 (length prefix)) prefix))
-            (setq image-path (substring image-path (length prefix))))
-        (if (eq (aref image-path 0) ?/)
-            (with-temp-buffer
-              (set-buffer-multibyte nil)
-              (ignore-errors (insert-file-contents-literally image-path))
-              (create-image (buffer-string) nil t))
-          (throw 'invalid (message "unsupported image path: %s" image-path))))))
+        (setq image-path (substring image-path (length prefix))))
+      (if (eq (aref image-path 0) ?/)
+          (with-temp-buffer
+            (set-buffer-multibyte nil)
+            (ignore-errors (insert-file-contents-literally image-path))
+            (create-image (buffer-string) nil t))
+        (throw 'invalid (message "unsupported image path: %s" image-path))))))
 
 (defun ednc--data-to-image (image-data)
   "Return image descriptor created from raw (iiibiiay) IMAGE-DATA.
 
 This function is destructive."
-  (if image-data
-      (cl-destructuring-bind (width height row-stride _ bit-depth channels data)
-          image-data
-        (if (not (and (= bit-depth 8) (<= 3 channels 4)))
-            (throw 'invalid (message "unsupported image parameters"))
-          (ednc--delete-padding data (* channels width) row-stride)
-          (ednc--delete-padding data 3 channels)
-          (let ((header (format "P6\n%d %d\n255\n" width height)))
-            (create-image (apply #'unibyte-string (append header data))
-                          'pbm t))))))
+  (when image-data
+    (cl-destructuring-bind (width height row-stride _ bit-depth channels data)
+        image-data
+      (if (not (and (= bit-depth 8) (<= 3 channels 4)))
+          (throw 'invalid (message "unsupported image parameters"))
+        (ednc--delete-padding data (* channels width) row-stride)
+        (ednc--delete-padding data 3 channels)
+        (let ((header (format "P6\n%d %d\n255\n" width height)))
+          (create-image (apply #'unibyte-string (append header data))
+                        'pbm t))))))
 
 (defun ednc--delete-padding (list payload total)
   "Delete LIST elements between multiples of PAYLOAD and TOTAL.
 
 This function is destructive."
-  (if (< payload total)
-      (let ((cell (cons nil list))
-            (delete (if (and (= payload 3) (= total 4)) #'cddr  ; fast opcode
-                      (apply-partially #'nthcdr (- total payload -1))))
-            (keep (if (= payload 3) #'cdddr (apply-partially #'nthcdr payload))))
-        (while (cdr cell)
-          (setcdr (setq cell (funcall keep cell)) (funcall delete cell))))))
+  (when (< payload total)
+    (let ((cell (cons nil list))
+          (delete (if (and (= payload 3) (= total 4)) #'cddr  ; fast opcode
+                    (apply-partially #'nthcdr (- total payload -1))))
+          (keep (if (= payload 3) #'cdddr (apply-partially #'nthcdr payload))))
+      (while (cdr cell)
+        (setcdr (setq cell (funcall keep cell)) (funcall delete cell))))))
 
 (defun ednc--push-notification (notification state expiry)
   "Push NOTIFICATION to STATE (expiring in EXPIRY seconds)."
   (setf (ednc-notification-parent notification) state)
-  (if (> expiry 0)
-      (setf (ednc-notification-timer notification)
-            (run-at-time expiry nil #'ednc--close-notification notification 1)))
+  (when (> expiry 0)
+    (setf (ednc-notification-timer notification)
+          (run-at-time expiry nil #'ednc--close-notification notification 1)))
   (let ((next (cadr state)))
     (push notification (cdr state))
     (if next (setf (ednc-notification-parent next) (cdr state)))))
@@ -309,17 +314,18 @@ This function is destructive."
   "Delete NOTIFICATION from state it was pushed to and return it."
   (let ((suffix (ednc-notification-parent notification)))
     (setf (ednc-notification-parent notification) nil)
-    (let ((timer (ednc-notification-timer notification)))
-      (if timer (cancel-timer timer)))
-    (let ((next (caddr suffix)))
-      (if next (setf (ednc-notification-parent next) suffix)))
+    (when-let (timer (ednc-notification-timer notification))
+      (cancel-timer timer))
+    (when-let (next (caddr suffix))
+      (setf (ednc-notification-parent next) suffix))
     (pop (cdr suffix))))
 
 (defun ednc-pop-to-notification-in-log-buffer (notification)
   "Pop to NOTIFICATION in its log buffer, if it exists."
   (cl-destructuring-bind (buffer . position)
       (alist-get 'logged (ednc-notification-amendments notification) '(nil))
-    (if (not (buffer-live-p buffer)) (user-error "Log buffer no longer exists")
+    (if (not (buffer-live-p buffer))
+        (user-error "Log buffer no longer exists")
       (pop-to-buffer buffer)
       (ednc-toggle-expanded-view (goto-char position) t))))
 
@@ -327,11 +333,11 @@ This function is destructive."
   "Remove OLD notification from its log buffer, if it exists."
   (cl-destructuring-bind (buffer . position)
       (alist-get 'logged (ednc-notification-amendments old) '(nil))
-    (if (buffer-live-p buffer)
-        (with-current-buffer buffer
-          (save-excursion
-            (add-text-properties (goto-char position) (line-end-position)
-                                 '(face (:strike-through t))))))))
+    (when (buffer-live-p buffer)
+      (with-current-buffer buffer
+        (save-excursion
+          (add-text-properties (goto-char position) (line-end-position)
+                               '(face (:strike-through t))))))))
 
 (defun ednc--append-new-notification-to-log-buffer (new)
   "Append NEW notification to log buffer."
@@ -345,8 +351,8 @@ This function is destructive."
 (defun ednc--update-log-buffer (old new)
   "Remove OLD notification from and add NEW one to log buffer."
   (let ((inhibit-read-only t))
-    (if old (ednc--remove-old-notification-from-log-buffer old))
-    (if new (ednc--append-new-notification-to-log-buffer new))))
+    (when old (ednc--remove-old-notification-from-log-buffer old))
+    (when new (ednc--append-new-notification-to-log-buffer new))))
 
 (provide 'ednc)
 ;;; ednc.el ends here

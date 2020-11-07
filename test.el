@@ -33,8 +33,8 @@
      ,@body
      (ednc--test-state-consistency)
      (ednc--stop-server)
-     (if (get-buffer ednc-log-name)
-         (kill-buffer ednc-log-name))))
+     (when (get-buffer ednc-log-name)
+       (kill-buffer ednc-log-name))))
 
 (defconst ednc--default-test-args
   '(:title "foo" :body "bar baz" :app-name "test" :replaces-id 0 :app-icon nil
@@ -47,8 +47,8 @@
 (defun ednc--test-args-match (id args)
   (let ((found (cl-find id (cdr ednc--state) :key #'ednc-notification-id)))
     (ednc--test-arg-matches found 'summary args :title)
-    (if (plist-get args :body)
-        (ednc--test-arg-matches found 'body args :body))
+    (when (plist-get args :body)
+      (ednc--test-arg-matches found 'body args :body))
     (ednc--test-arg-matches found 'app-name args :app-name)
     (if (zerop (plist-get args :replaces-id))
         (should-not (zerop (ednc-notification-id found)))
