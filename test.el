@@ -16,6 +16,7 @@
 (require 'ednc)
 
 (require 'notifications)
+(require 'subr-x)
 
 ;; Load the use cases documented in README.org:
 (require 'ob-tangle)
@@ -115,7 +116,7 @@
 ;; Test use case list-notifcations:
 (ert-deftest ednc--list-no-notifications-test ()
   (ednc--with-temp-server
-    (should (string-equal "" (list-notifications)))))
+    (should (string-empty-p (list-notifications)))))
 
 (ert-deftest ednc--list-single-notification-test ()
   (ednc--with-temp-server
@@ -132,12 +133,12 @@
 ;; Test use case stack-notifications:
 (ert-deftest ednc--stack-no-notifications-test ()
   (ednc--with-temp-server
-    (should (string-equal "" (stack-notifications)))))
+    (should (string-empty-p (stack-notifications)))))
 
 (ert-deftest ednc--stack-hidden-notification-test ()
   (ednc--with-temp-server
     (apply #'notifications-notify ednc--default-test-args)
-    (should (string-equal "" (stack-notifications '("test"))))))
+    (should (string-empty-p (stack-notifications '("test"))))))
 
 (ert-deftest ednc--stack-for-single-notification-test ()
   (ednc--with-temp-server
