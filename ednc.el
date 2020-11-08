@@ -134,8 +134,8 @@ With a non-nil PREFIX, make those details visible unconditionally."
 
 (defun ednc--close-notification-by-id (id)
   "Close the notification identified by ID."
-  (if-let (found (cl-find id (cdr ednc--state)
-                          :test #'eq :key #'ednc-notification-id))
+  (if-let* ((found (cl-find id (cdr ednc--state)
+                            :test #'eq :key #'ednc-notification-id)))
       (ednc--close-notification found 3)
     (signal 'dbus-error nil))
   :ignore)
@@ -261,8 +261,8 @@ The returned value is removed from HINTS if REMOVE-FLAG is non-nil."
 
 (defun ednc--path-to-image (image-path)
   "Return image descriptor created from file URI IMAGE-PATH."
-  (when-let (image-path (unless (string-empty-p image-path)
-                          (string-remove-prefix "file://" image-path)))
+  (when-let* ((image-path (unless (string-empty-p image-path)
+                            (string-remove-prefix "file://" image-path))))
     (if (eq (aref image-path 0) ?/)
         (with-temp-buffer
           (set-buffer-multibyte nil)
@@ -311,9 +311,9 @@ This function is destructive."
   "Delete NOTIFICATION from state it was pushed to and return it."
   (let ((suffix (ednc-notification-parent notification)))
     (setf (ednc-notification-parent notification) nil)
-    (when-let (timer (ednc-notification-timer notification))
+    (when-let* ((timer (ednc-notification-timer notification)))
       (cancel-timer timer))
-    (when-let (next (caddr suffix))
+    (when-let* ((next (caddr suffix)))
       (setf (ednc-notification-parent next) suffix))
     (pop (cdr suffix))))
 
