@@ -1,0 +1,16 @@
+on: workflow_dispatch
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        emacs: [26.1, 26.2, 26.3, 27.1]
+    steps:
+      - uses: actions/checkout@v2.3.4
+      - uses: purcell/setup-emacs@v2.0
+        with:
+          version: ${{ matrix.emacs }}
+      - uses: leotaku/elisp-check@v1.0
+        with:
+          file: ednc.el
