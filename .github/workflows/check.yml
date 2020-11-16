@@ -14,3 +14,7 @@ jobs:
       - uses: leotaku/elisp-check@v1.0
         with:
           file: ednc.el
+      - uses: leotaku/elisp-check@v1.0
+        with:
+          check: ert
+          file: test.el
