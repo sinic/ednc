@@ -31,7 +31,7 @@ You can create example notifications from Emacs
 by evaluating the following expressions:
 #+BEGIN_SRC emacs-lisp
 (require 'notifications)
-(notifications-notify :title "test" :body "hello world" :app-name "EDNC"
+(notifications-notify :title "1st test" :body "hello, world" :app-name "EDNC"
                       :actions '("default" "default"))
 #+END_SRC
 Some clients (e.g., web browsers) check for a notification server on startup
