@@ -55,6 +55,7 @@ These are the contents of ~*ednc-log*~ after
 creating two notifications,
 dismissing the first one,
 and expanding the second one:
+
 [[./screenshot.png]]
 
 ** Advanced Usage
