@@ -46,13 +46,13 @@ In the log buffer, you can use the following default key bindings
 - @@html:<kbd>@@C-down-mouse-1@@html:</kbd>@@
   shows a menu of all available actions,
 - @@html:<kbd>@@mouse-2@@html:</kbd>@@
-  (middle click) pops to the notification in the interactive log buffer
+  (middle click) pops to the notification in the log buffer
   (~ednc-pop-to-notification-in-log-buffer~), and
 - @@html:<kbd>@@d@@html:</kbd>@@ or @@html:<kbd>@@mouse-3@@html:</kbd>@@
   (right click) dismisses the notification (~ednc-dismiss-notification~).
 
-These are the contents of ~*ednc-log*~ after
-creating two notifications,
+This is the log buffer after
+creating two test notifications,
 dismissing the first one,
 and expanding the second one:
 
