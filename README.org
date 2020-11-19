@@ -37,8 +37,8 @@ by evaluating the following expressions:
 Some clients (e.g., web browsers) check for a notification server on startup
 and thus need to be reopened after enabling EDNC.
 
-In the log buffer, you can use the following default key bindings
-(or mouse controls, which are not restricted to the log buffer):
+By default, you can use the following mouse controls and key bindings
+(the latter only in the log buffer):
 - @@html:<kbd>@@TAB@@html:</kbd>@@
   toggles an expanded view of the notification (~ednc-toggle-expanded-view~),
 - @@html:<kbd>@@RET@@html:</kbd>@@ or @@html:<kbd>@@mouse-1@@html:</kbd>@@
