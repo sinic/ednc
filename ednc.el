@@ -274,7 +274,7 @@ The returned value is removed from HINTS if REMOVE-FLAG is non-nil."
   "Return image descriptor created from raw (iiibiiay) IMAGE-DATA.
 
 This function is destructive."
-  (when image-data
+  (when (and image-data (image-type-available-p 'pbm))
     (cl-destructuring-bind (width height row-stride _ bit-depth channels data)
         image-data
       (if (not (and (= bit-depth 8) (<= 3 channels 4)))

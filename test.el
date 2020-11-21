@@ -411,13 +411,15 @@
   (should-not (ednc--path-to-image "file:///nonexistent")))
 
 (ert-deftest ednc--unsupported-data-to-image-test ()
-  (let ((raw (append "abcABCxyzXYZ" nil)))
-    (should-error (ednc--data-to-image (list 2 2 6 t 7 3 raw)))  ; bit-depth
-    (should-error (ednc--data-to-image (list 2 2 6 t 8 2 raw)))  ; non-RGB(A)
-    (should-error (ednc--data-to-image (list 2 2 6 t 8 5 raw)))))
+  (when (image-type-available-p 'pbm)
+    (let ((raw (append "abcABCxyzXYZ" nil)))
+      (should-error (ednc--data-to-image (list 2 2 6 t 7 3 raw)))  ; bit-depth
+      (should-error (ednc--data-to-image (list 2 2 6 t 8 2 raw)))  ; non-RGB(A)
+      (should-error (ednc--data-to-image (list 2 2 6 t 8 5 raw))))))
 
 (ert-deftest ednc--data-to-image-test ()
-  (let* ((expect "P6\n2 2\n255\nabcABCxyzXYZ")
+  (let* ((expect (when (image-type-available-p 'pbm)
+                   "P6\n2 2\n255\nabcABCxyzXYZ"))
          (data (append "abcABCxyzXYZ" nil))
          (image (ednc--data-to-image (list 2 2 6 nil 8 3 data))))
     (should (equal (image-property image :data) expect))  ; RGB
