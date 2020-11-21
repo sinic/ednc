@@ -267,7 +267,7 @@ The returned value is removed from HINTS if REMOVE-FLAG is non-nil."
         (with-temp-buffer
           (set-buffer-multibyte nil)
           (ignore-errors (insert-file-contents-literally image-path))
-          (create-image (buffer-string) nil t))
+          (when (> (point) 1) (create-image (buffer-string) nil t)))
       (throw 'invalid (message "unsupported image path: %s" image-path)))))
 
 (defun ednc--data-to-image (image-data)
