@@ -14,7 +14,9 @@ jobs:
       - uses: leotaku/elisp-check@v1.0
         with:
           file: ednc.el
+  test:
+    steps:
       - run: |
           sudo apt-get update
-          sudo apt-get install -y dbus-x11
+          sudo apt-get install -y dbus-x11 emacs
           dbus-launch emacs -Q --batch -L . -l test.el -f ert-run-tests-batch-and-exit
