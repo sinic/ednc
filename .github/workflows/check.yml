@@ -15,6 +15,7 @@ jobs:
         with:
           file: ednc.el
   test:
+    runs-on: ubuntu-latest
     steps:
       - run: |
           sudo apt-get update
