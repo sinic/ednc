@@ -122,5 +122,6 @@ Then ensure the function is called at the appropriate moment:
           #'show-notification-in-buffer)
 #+END_SRC
 
+[[https://github.com/sinic/ednc/actions][https://github.com/sinic/ednc/workflows/CI/badge.svg]]
 [[https://www.gnu.org/licenses/gpl-3.0][file:https://img.shields.io/badge/License-GPLv3-blue.svg]]
 [[https://melpa.org/#/ednc][file:https://melpa.org/packages/ednc-badge.svg]]
