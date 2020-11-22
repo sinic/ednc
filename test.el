@@ -405,6 +405,11 @@
   (should-error (ednc--path-to-image  ; with unsupported schema
                  "https://www.gnu.org/software/emacs/images/emacs.png")))
 
+(ert-deftest ednc--path-to-image-test ()
+  (let ((path (expand-file-name "screenshot.png")))
+    (should (ednc--path-to-image path))
+    (should (ednc--path-to-image (concat "file://" path)))))
+
 (ert-deftest ednc--nonexistent-path-to-image-test ()
   (should-not (ednc--path-to-image ""))
   (should-not (ednc--path-to-image "/nonexistent"))
