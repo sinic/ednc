@@ -122,6 +122,31 @@ Then ensure the function is called at the appropriate moment:
           #'show-notification-in-buffer)
 #+END_SRC
 
+** Questions and Answers
+Here you find answers to some real and to some imagined questions from users.
+
+*** How does EDNC differ from [[https://github.com/jwiegley/alert][Alert]]?
+These are two different classes of software:
+EDNC handles incoming notifications on D-Bus; Alert does not, but
+[[https://github.com/jwiegley/alert#builtin-alert-styles][can be configured]]
+to /emit/ notifications on D-Bus.
+It is possible, and sensible, to use both EDNC and Alert at the same time.
+
+*** How does EDNC differ from [[https://dunst-project.org/][Dunst]]?
+EDNC is native to Emacs; Dunst is not.
+Other than that, there should be no fundamental difference.
+
+*** Why do some icons look weird?
+Icons with transparency are not fully supported yet:
+Emacs does not support [[http://netpbm.sourceforge.net/doc/pam.html][PAM]],
+a newer Netpbm format with an alpha channel.
+Until that changes, transparency information is simply ignored.
+
+*** Why are some icons not showing up at all?
+Only file URIs are supported for now: the
+[[https://specifications.freedesktop.org/icon-theme-spec/icon-theme-spec-latest.html][Icon Theme Specification]]
+has not been implemented yet.
+
 -----
 [[https://github.com/sinic/ednc/actions][https://github.com/sinic/ednc/workflows/CI/badge.svg]]
 [[https://www.gnu.org/licenses/gpl-3.0][file:https://img.shields.io/badge/License-GPLv3-blue.svg]]
