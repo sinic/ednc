@@ -131,21 +131,28 @@ EDNC handles incoming notifications on D-Bus; Alert does not, but
 [[https://github.com/jwiegley/alert#builtin-alert-styles][can be configured]]
 to /emit/ notifications on D-Bus.
 It is possible, and sensible, to use both EDNC and Alert at the same time.
+You might configure the packages, for example, so that
+- Alert sends a notification on activity in an rcirc buffer,
+- Signal sends a notification on receiving a message, and
+- EDNC presents both of these uniformly in the mode-line.
+Without EDNC, Alert could bypass D-Bus when dealing with rcirc,
+but the information from Signal would be inaccessible to Emacs.
 
 *** How does EDNC differ from [[https://dunst-project.org/][Dunst]]?
 EDNC is native to Emacs; Dunst is not.
+Specifically, you can access and modify received notifications with Emacs Lisp
+(a big deal for some users).
 Other than that, there should be no fundamental difference.
 
 *** Why do some icons look weird?
-Icons with transparency are not fully supported yet:
 Emacs does not support [[http://netpbm.sourceforge.net/doc/pam.html][PAM]],
-a newer Netpbm format with an alpha channel.
-Until that changes, transparency information is simply ignored.
+a newer Netpbm format with optional transparency information.
+Until that changes, the icon's alpha channel is simply ignored.
 
 *** Why are some icons not showing up at all?
-Only file URIs are supported for now: the
-[[https://specifications.freedesktop.org/icon-theme-spec/icon-theme-spec-latest.html][Icon Theme Specification]]
-has not been implemented yet.
+[[https://specifications.freedesktop.org/icon-theme-spec/icon-theme-spec-latest.html][The Icon Theme Specification]]
+has not been implemented yet, so
+only file URIs are supported for now.
 
 -----
 [[https://github.com/sinic/ednc/actions][https://github.com/sinic/ednc/workflows/CI/badge.svg]]
