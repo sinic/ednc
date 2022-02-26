@@ -113,6 +113,11 @@
     (let ((test (make-ert-test :body #'ednc--test-state-consistency)))
       (should (ert-test-failed-p (ert-run-test test))))))
 
+;; Test introspection:
+(ert-deftest ednc--handle-introspection-test ()
+  (ednc--with-temp-server
+    (should (stringp (dbus-introspect :session ednc--service ednc--path)))))
+
 ;; Test use case list-notifcations:
 (ert-deftest ednc--list-no-notifications-test ()
   (ednc--with-temp-server
