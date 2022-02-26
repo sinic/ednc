@@ -198,6 +198,7 @@ If EXPAND-FLAG is nil, make details invisible by default."
            finally return (cons 'keymap (nreverse (cons "Actions" out)))))
 
 (defun ednc--xml ()
+  "Return D-Bus introspection XML string."
   "<?xml version=\"1.0\" encoding=\"UTF-8\"?>
 
 <node name=\"/org/freedesktop/Notifications\">
