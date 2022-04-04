@@ -51,6 +51,8 @@
   id app-name app-icon summary body actions hints client timer parent
   amendments)
 
+(defgroup ednc () "Emacs Desktop Notification Center." :group 'unix)
+
 ;;;###autoload
 (define-minor-mode ednc-mode
   "Act as a Desktop Notifications server and track notifications."
