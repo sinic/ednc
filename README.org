@@ -4,7 +4,7 @@
 The Emacs Desktop Notification Center (EDNC) is
 an Emacs package written in pure Lisp that
 implements a Desktop Notifications service according to
-[[https://people.gnome.org/~mccann/docs/notification-spec/notification-spec-latest.html][the freedesktop.org specification]].
+[[https://specifications.freedesktop.org/notification-spec/notification-spec-latest.html][the freedesktop.org specification]].
 EDNC aspires to be a small, but flexible drop-in replacement
 of standalone daemons like [[https://dunst-project.org/][Dunst]].
 A global minor mode ~ednc-mode~ tracks active notifications,
