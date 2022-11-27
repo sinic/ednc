@@ -39,6 +39,7 @@
 (require 'dbus)
 (require 'image)
 (require 'subr-x)
+(require 'mm-util)
 
 (defconst ednc-log-name "*ednc-log*")
 
@@ -311,7 +312,7 @@ The returned value is removed from HINTS if REMOVE-FLAG is non-nil."
     (if (eq (aref image-path 0) ?/)
         (with-temp-buffer
           (set-buffer-multibyte nil)
-          (ignore-errors (insert-file-contents-literally image-path))
+          (ignore-errors (mm-insert-file-contents image-path nil nil nil nil t))
           (unless (string-empty-p (buffer-string))
             (create-image (buffer-string) nil t)))
       (throw 'invalid (message "unsupported image path: %s" image-path)))))
