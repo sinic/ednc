@@ -38,8 +38,8 @@
 (require 'cl-lib)
 (require 'dbus)
 (require 'image)
-(require 'subr-x)
 (require 'mm-util)
+(require 'subr-x)
 
 (defconst ednc-log-name "*ednc-log*")
 
