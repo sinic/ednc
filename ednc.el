@@ -293,8 +293,9 @@ This function modifies the notification's hints."
       (when image
         (setf (image-property image :max-height) (line-pixel-height)
               (image-property image :ascent) 90)
-        (push (cons 'icon (propertize " " 'display image))
-              (ednc-notification-amendments new))))))
+        (push (cons 'icon (with-temp-buffer (insert-image image)
+                                            (buffer-string)))
+                    (ednc-notification-amendments new))))))
 
 (defun ednc--get-hint (hints key &optional remove-flag)
   "Return and delete from HINTS the value specified by KEY.
