@@ -121,7 +121,8 @@ ACTION defaults to the key \"default\"."
 (defun ednc-toggle-expanded-view (position &optional prefix)
   "Toggle visibility of further details of notification at POSITION.
 
-With a non-nil PREFIX, make those details visible unconditionally."
+With a positive PREFIX, make those details visible unconditionally;
+with a negative PREFIX, hide them unconditionally."
   (interactive "d\nP")
   (let ((prop 'ednc-notification))
     (unless (or (get-text-property position prop)
@@ -131,7 +132,8 @@ With a non-nil PREFIX, make those details visible unconditionally."
     (let* ((end (or (next-single-property-change position prop) (point-max)))
            (begin (or (previous-single-property-change end prop) (point-min)))
            (eol (save-excursion (goto-char begin) (line-end-position)))
-           (current (or prefix (get-text-property eol 'invisible)))
+           (prefix (if prefix (prefix-numeric-value prefix)))
+           (current (if prefix (> prefix 0) (get-text-property eol 'invisible)))
            (inhibit-read-only t))
       (when (< eol end) (put-text-property eol end 'invisible (not current))))))
 
