@@ -1,8 +1,8 @@
 ;;; ednc.el --- Emacs Desktop Notification Center -*- lexical-binding: t; -*-
-;; Copyright (C) 2020 Simon Nicolussi
+;; Copyright (C) 2020-2023 Simon Nicolussi
 
 ;; Author: Simon Nicolussi <sinic@sinic.name>
-;; Version: 0.1
+;; Version: 0.2
 ;; Package-Requires: ((emacs "26.1"))
 ;; Keywords: unix
 ;; Homepage: https://github.com/sinic/ednc
@@ -248,7 +248,7 @@ If EXPAND-FLAG is nil, make details invisible by default."
   (dolist (args `(("Notify" ,#'ednc--notify t)
                   ("CloseNotification" ,#'ednc--close-notification-by-id t)
                   ("GetServerInformation"
-                   ,(lambda () (list "EDNC" "sinic" "0.1" "1.2")) t)
+                   ,(lambda () (list "EDNC" "sinic" "0.2" "1.2")) t)
                   ("GetCapabilities" ,(lambda () '(("body" "actions"))) t)))
     (apply #'dbus-register-method :session
            ednc--service ednc--path ednc--interface args))
