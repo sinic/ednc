@@ -293,7 +293,7 @@ This function modifies the notification's hints."
                 (ednc--path-to-image (ednc-notification-app-icon new))
                 (ednc--data-to-image (ednc--get-hint hints "icon_data" t)))))
       (when image
-        (setf (image-property image :max-height) (line-pixel-height)
+        (setf (image-property image :max-height) (frame-char-height)
               (image-property image :ascent) 90)
         (push (cons 'icon (with-temp-buffer (insert-image image)
                                             (buffer-string)))
