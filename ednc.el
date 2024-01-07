@@ -54,6 +54,18 @@
 
 (defgroup ednc () "Emacs Desktop Notification Center." :group 'unix)
 
+(defface ednc-app-name
+  '((t (:inherit default)))
+  "Name of the application that sent the notification.")
+
+(defface ednc-title
+  '((t (:inherit default)))
+  "Notification title.")
+
+(defface ednc-body
+  '((t (:inherit default)))
+  "Notification text.")
+
 ;;;###autoload
 (define-minor-mode ednc-mode
   "Act as a Desktop Notifications server and track notifications."
@@ -163,10 +175,13 @@ If EXPAND-FLAG is nil, make details invisible by default."
     (format (propertize " %s[%s: %s]%s" 'face (list :inherit inherit)
                         'ednc-notification notification)
             (alist-get 'icon (ednc-notification-amendments notification) "")
-            (ednc-notification-app-name notification)
-            (ednc--format-summary notification)
+            (propertize (ednc-notification-app-name notification)
+                        'face 'ednc-app-name)
+            (propertize (ednc--format-summary notification)
+                        'face 'ednc-title)
             (propertize (concat "\n" (ednc-notification-body notification) "\n")
-                        'invisible (not expand-flag)))))
+                        'invisible (not expand-flag)
+                        'face 'ednc-body))))
 
 (defun ednc--format-summary (notification)
   "Return propertized summary of NOTIFICATION."
