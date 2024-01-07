@@ -66,6 +66,14 @@
   '((t (:inherit default)))
   "Notification text.")
 
+(defface ednc-dismissed
+  '((t (:inherit default :strike-through t)))
+  "Default face for dismissed notifications.")
+
+(defcustom ednc-dismissed-face 'ednc-dismissed
+  "Face to be used for dismissed notifications."
+  :type 'face)
+
 ;;;###autoload
 (define-minor-mode ednc-mode
   "Act as a Desktop Notifications server and track notifications."
@@ -395,11 +403,11 @@ This function is destructive."
   "Remove OLD notification from its log buffer, if it exists."
   (cl-destructuring-bind (buffer . position)
       (alist-get 'logged (ednc-notification-amendments old) '(nil))
-    (when (buffer-live-p buffer)
+    (when (and (buffer-live-p buffer) ednc-dismissed-face)
       (with-current-buffer buffer
         (save-excursion
           (add-text-properties (goto-char position) (line-end-position)
-                               '(face (:strike-through t))))))))
+                               `(face ,ednc-dismissed-face)))))))
 
 (defun ednc--append-new-notification-to-log-buffer (new)
   "Append NEW notification to log buffer."
