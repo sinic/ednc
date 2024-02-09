@@ -54,16 +54,13 @@
 
 (defgroup ednc () "Emacs Desktop Notification Center." :group 'unix)
 
-(defface ednc-app-name
-  '((t (:inherit default)))
+(defface ednc-app-name nil
   "Name of the application that sent the notification.")
 
-(defface ednc-title
-  '((t (:inherit default)))
+(defface ednc-title nil
   "Notification title.")
 
-(defface ednc-body
-  '((t (:inherit default)))
+(defface ednc-body nil
   "Notification text.")
 
 ;;;###autoload
