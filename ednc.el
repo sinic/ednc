@@ -63,8 +63,7 @@
 (defface ednc-body nil
   "Notification text.")
 
-(defface ednc-dismissed
-  '((t (:inherit default :strike-through t)))
+(defface ednc-dismissed '((t (:strike-through t)))
   "Default face for dismissed notifications.")
 
 (defcustom ednc-dismissed-face 'ednc-dismissed
