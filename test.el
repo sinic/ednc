@@ -246,7 +246,7 @@
         (should (string-equal " [test: foo]\nbar baz\n\n [test: foo]\ncorge\n\n"
                               (buffer-string)))
         (should (equal (get-text-property (point-min) 'face)
-                       '(:strike-through t)))))))
+                       ednc-dismissed-face))))))
 
 ;; Test ednc-invoke-action:
 (ert-deftest ednc--invoke-default-action-test ()
