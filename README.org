@@ -144,6 +144,13 @@ Specifically, you can access and modify received notifications with Emacs Lisp
 (a big deal for some users).
 Other than that, there should be no fundamental difference.
 
+*** Can I show the notifications as new frames?
+The API exposed through ~ednc-notification-presentation-functions~
+allows you do exactly that (and more).
+For this specific case,
+there already is [[Https://codeberg.org/akib/emacs-ednc-popup][a third party package]]
+that provides an appropriate function.
+
 *** Why do some icons look weird?
 Emacs does not support [[http://netpbm.sourceforge.net/doc/pam.html][PAM]],
 a newer Netpbm format with optional transparency information.
