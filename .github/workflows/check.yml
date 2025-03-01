@@ -20,13 +20,10 @@ jobs:
         with:
           file: ednc.el
   test:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4.2.2
-      - uses: purcell/setup-emacs@v7.0
-        with:
-          version: 30.1
-      - uses: leotaku/elisp-check@v1.4.0
-        with:
-          check: ert
-          file: test.el
+      - run: |
+          sudo apt-get update
+          sudo apt-get install -y dbus-x11 emacs
+          dbus-launch emacs -Q --batch -L . -l test.el -f ert-run-tests-batch-and-exit
