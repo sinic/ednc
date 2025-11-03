@@ -312,10 +312,10 @@ This function modifies the notification's hints."
                 (ednc--path-to-image (ednc-notification-app-icon new))
                 (ednc--data-to-image (ednc--get-hint hints "icon_data" t)))))
       (when image
-        (setf (image-property image :max-height) (frame-char-height)
-              (image-property image :ascent) 90)
-        (push (cons 'icon (with-temp-buffer (insert-image image)
-                                            (buffer-string)))
+        (setf (image-property image :max-height) '(1.0 . ch)
+              (image-property image :scale) 1.0
+              (image-property image :ascent) 'center)
+        (push (cons 'icon (propertize " " 'display image))
                     (ednc-notification-amendments new))))))
 
 (defun ednc--get-hint (hints key &optional remove-flag)
