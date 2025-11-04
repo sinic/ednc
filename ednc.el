@@ -314,6 +314,7 @@ This function modifies the notification's hints."
       (when image
         (setf (image-property image :max-height) '(1.0 . ch)
               (image-property image :scale) 1.0
+              (image-property image :mask) 'heuristic
               (image-property image :ascent) 'center)
         (push (cons 'icon (propertize " " 'display image))
                     (ednc-notification-amendments new))))))
