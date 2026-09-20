@@ -164,4 +164,4 @@ only file URIs are supported for now.
 [[https://github.com/sinic/ednc/actions][https://github.com/sinic/ednc/workflows/CI/badge.svg]]
 [[https://www.gnu.org/licenses/gpl-3.0][https://img.shields.io/badge/License-GPLv3-blue.svg]]
 [[https://melpa.org/#/ednc][https://melpa.org/packages/ednc-badge.svg]]
-[[https://github.com/nuxy/no-ai-badge#no-ai-badge][https://no-ai-badge.nuxy.dev/badge.svg]]
+[[https://github.com/nuxy/no-ai-badge#no-ai-badge][https://raw.githubusercontent.com/nuxy/no-ai-badge/master/badge.svg]]
